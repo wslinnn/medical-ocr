@@ -1,49 +1,67 @@
 {
-  "name": "electron-buibuibui",
-  "version": "0.0.1",
-  "description": "xiaoshengwpp",
-  "author": "xiaoshengwpp",
-  "main": "main.js",
+  "name": "medical-ocr-pro",
+  "version": "1.0.0",
+  "description": "医疗病例 OCR 识别系统 Pro",
+  "author": "Medical OCR Team",
+  "main": "main-pro.js",
   "license": "MIT",
   "scripts": {
     "dev": "cross-env NODE_ENV=development electron .",
     "start": "cross-env NODE_ENV=production electron .",
     "prebuild": "node build-config.js",
-    "build": "electron-builder"
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:portable": "electron-builder --win --publish never"
   },
   "devDependencies": {
     "concurrently": "^9.2.0",
     "cross-env": "^7.0.3",
-    "electron": "34.5.8",
+    "electron": "^40.8.0",
     "electron-builder": "^26.0.12",
     "wait-on": "^8.0.3"
   },
   "build": {
-    "appId": "com.example.electronbuibuibui",
-    "productName": "ElectronBuiBuiBui",
+    "appId": "com.medical.ocr.pro",
+    "productName": "医疗病例OCR Pro",
     "files": [
-      "main.js",
-      "preload.js",
+      "main-pro.js",
+      "preload-pro.js",
+      "medical-ocr-pro.html",
+      "css/**/*",
+      "js/**/*",
       "config.json",
       "package.json",
       "assets/**/*"
     ],
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "assets"
     },
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64", "ia32"]
+          "arch": ["x64"]
         },
         {
           "target": "portable",
-          "arch": ["x64", "ia32"]
+          "arch": ["x64"]
         }
-      ]
+      ],
+      "icon": "assets/icon.png"
     },
     "mac": {
+      "target": ["dmg"],
+      "icon": "assets/icon.png",
+      "category": "public.app-category.medical"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "assets/icon.png",
+      "uninstallerIcon": "assets/icon.png",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
     }
   }
 }

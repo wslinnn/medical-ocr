@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医疗病例 OCR 识别系统 Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/xlsx@0.20.0/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="css/pro-style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0891B2',
+                        primaryLight: '#22D3EE',
+                        success: '#22C55E',
+                        warning: '#F59E0B',
+                        danger: '#EF4444',
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen">
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-[100] flex flex-col gap-2"></div>
+
+    <!-- Hidden file input for import -->
+    <input type="file" id="import-file-input" accept=".json" class="hidden">
+
+    <!-- Main Container -->
+    <div class="max-w-[95%] mx-auto px-4 py-6">
+        <!-- Header with Settings Button -->
+        <header class="mb-8">
+            <div class="flex items-center justify-between">
+                <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                    <svg class="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                    医疗病例 OCR 识别系统 Pro
+                </h1>
+                <div class="flex items-center gap-4">
+                    <!-- Network Status -->
+                    <div id="network-status-container" class="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-sm border">
+                        <div id="network-status-dot" class="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span id="network-status-text" class="text-sm text-gray-600">已连接</span>
+                    </div>
+                    <!-- Settings Button -->
+                    <button id="btn-settings" class="p-2 bg-white rounded-lg shadow-sm border hover:bg-gray-50 hover:border-gray-300 transition-colors" title="设置">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div class="mb-6">
+            <div class="flex gap-2 border-b">
+                <button id="tab-upload" class="tab-btn px-6 py-3 font-medium text-primary border-b-2 border-primary">文件处理</button>
+                <button id="tab-compare" class="tab-btn px-6 py-3 font-medium text-gray-500 hover:text-gray-700">对比审核</button>
+            </div>
+        </div>
+
+        <!-- Upload View -->
+        <div id="view-upload" class="view-panel">
+            <div class="flex gap-6 h-[calc(100vh-220px)]">
+                <!-- Left Panel - Upload & Queue (fixed width) -->
+                <div class="w-[400px] flex-shrink-0 flex flex-col gap-6">
+                    <!-- Upload Card -->
+                    <div class="bg-white rounded-2xl shadow p-6 flex-shrink-0">
+                        <h3 class="font-semibold mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                            </svg>
+                            上传病历文件
+                        </h3>
+                        <div class="flex gap-2 mb-4">
+                            <button id="btn-select-folder" class="flex-1 py-2.5 bg-primary text-white rounded-lg hover:bg-cyan-700 font-medium">选择文件夹</button>
+                            <button id="btn-select-files" class="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">选择文件</button>
+                        </div>
+                        <div id="drop-zone" class="drop-zone border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-primary transition-colors">
+                            <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            </svg>
+                            <p class="text-gray-600 text-sm">拖拽文件或文件夹到此处</p>
+                            <p class="text-xs text-gray-400 mt-1">支持 JPG、PNG、PDF</p>
+                        </div>
+                    </div>
+
+                    <!-- Queue Card -->
+                    <div class="bg-white rounded-2xl shadow p-6 flex-1 flex flex-col">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-semibold flex items-center gap-2">
+                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                                </svg>
+                                文件队列
+                            </h3>
+                            <span id="queue-count" class="text-sm text-gray-500">0 个文件</span>
+                        </div>
+                        <div id="file-queue" class="flex-1 overflow-y-auto mb-4 min-h-0">
+                            <p class="text-gray-400 text-center py-8 text-sm">暂无文件</p>
+                        </div>
+                        <div id="queue-progress" class="hidden mb-4">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span id="progress-text">处理中...</span>
+                                <span id="progress-counts"></span>
+                            </div>
+                            <div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+                                <div id="progress-bar" class="progress-bar bg-primary h-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="btn-start-all" class="flex-1 py-2.5 bg-success text-white rounded-lg hover:bg-green-600 disabled:opacity-50 font-medium" disabled>开始识别</button>
+                            <button id="btn-clear-queue" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">清空</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel - Records List (flexible width) -->
+                <div class="flex-1 min-w-0">
+                    <div class="bg-white rounded-2xl shadow p-6 h-full flex flex-col">
+                        <!-- Statistics Cards -->
+                        <div class="grid grid-cols-4 gap-3 mb-4 flex-shrink-0">
+                            <div class="bg-blue-50 rounded-lg p-3 border-l-4 border-blue-500">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-gray-500">今日识别</div>
+                                        <div class="text-xl font-bold text-blue-600" id="today-count">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-yellow-50 rounded-lg p-3 border-l-4 border-yellow-500">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-gray-500">待审核</div>
+                                        <div class="text-xl font-bold text-yellow-600" id="pending-count">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-green-50 rounded-lg p-3 border-l-4 border-green-500">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-gray-500">已审核</div>
+                                        <div class="text-xl font-bold text-green-600" id="reviewed-count">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-red-50 rounded-lg p-3 border-l-4 border-red-500">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.932-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.932 3z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-gray-500">需复核</div>
+                                        <div class="text-xl font-bold text-red-600" id="flagged-count">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Search, Filter and Data Management Toolbar -->
+                        <div class="flex gap-3 mb-4 flex-shrink-0 items-center">
+                            <div class="flex-1 relative">
+                                <svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                                <input type="text" id="search-input" placeholder="搜索姓名或诊断..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <select id="filter-status" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                                <option value="">全部状态</option>
+                                <option value="pending">待审核</option>
+                                <option value="reviewed">已审核</option>
+                                <option value="flagged">需复核</option>
+                            </select>
+                            <button id="btn-export-all" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-cyan-700 flex items-center gap-2 whitespace-nowrap">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                                导出全部
+                            </button>
+                            <div class="relative">
+                                <button id="btn-data-menu" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 whitespace-nowrap">
+                                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    </svg>
+                                    数据管理
+                                </button>
+                                <div id="data-menu-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border z-50">
+                                    <button id="btn-dedup-check" class="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 rounded-t-lg">
+                                        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <div>
+                                            <div class="font-medium">查重去重</div>
+                                            <div class="text-xs text-gray-500">检测并处理重复记录</div>
+                                        </div>
+                                    </button>
+                                    <button id="btn-backup" class="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3">
+                                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                        </svg>
+                                        <div>
+                                            <div class="font-medium">备份数据</div>
+                                            <div class="text-xs text-gray-500">导出JSON完整备份</div>
+                                        </div>
+                                    </button>
+                                    <button id="btn-import" class="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3">
+                                        <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                        </svg>
+                                        <div>
+                                            <div class="font-medium">导入数据</div>
+                                            <div class="text-xs text-gray-500">从备份恢复数据</div>
+                                        </div>
+                                    </button>
+                                    <div class="border-t"></div>
+                                    <button id="btn-clear-all" class="w-full px-4 py-3 text-left hover:bg-red-50 flex items-center gap-3 rounded-b-lg text-red-600">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 011-1h2a1 1 0 011 1v3M4 7h16"/>
+                                        </svg>
+                                        <div>
+                                            <div class="font-medium">清空数据</div>
+                                            <div class="text-xs text-gray-500">删除所有记录</div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Batch Actions Bar -->
+                        <div id="batch-actions-bar" class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex-shrink-0">
+                            <div class="flex justify-between items-center">
+                                <span id="selected-count" class="text-sm font-medium text-blue-700">已选择 0 项</span>
+                                <div class="flex gap-2">
+                                    <button id="btn-batch-review" class="px-3 py-1.5 bg-green-500 text-white text-sm rounded hover:bg-green-600 flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        批量审核
+                                    </button>
+                                    <button id="btn-batch-flag" class="px-3 py-1.5 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.932-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.932 3z"/>
+                                        </svg>
+                                        批量标记
+                                    </button>
+                                    <button id="btn-batch-export" class="px-3 py-1.5 bg-primary text-white text-sm rounded hover:bg-cyan-700 flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                        </svg>
+                                        批量导出
+                                    </button>
+                                    <button id="btn-batch-delete" class="px-3 py-1.5 bg-red-500 text-white text-sm rounded hover:bg-red-600 flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 011-1h2a1 1 0 011 1v3M4 7h16"/>
+                                        </svg>
+                                        批量删除
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Records Table -->
+                        <div class="flex-1 overflow-hidden flex flex-col min-h-0">
+                            <div class="border border-gray-200 rounded-lg overflow-hidden flex-1 overflow-y-auto">
+                                <table class="w-full border-collapse">
+                                    <thead class="bg-gray-50 sticky top-0 z-10">
+                                        <tr class="border-b border-gray-200">
+                                            <th class="w-12 px-4 py-3 text-center">
+                                                <input type="checkbox" id="select-all" class="record-checkbox w-4 h-4">
+                                            </th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">姓名</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">性别</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">年龄</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">诊断</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">分期</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">状态</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">识别时间</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="records-body" class="divide-y divide-gray-100">
+                                        <tr>
+                                            <td colspan="10" class="px-4 py-12 text-center text-gray-400">暂无记录</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            <div id="pagination-container" class="hidden mt-4 flex items-center justify-between flex-shrink-0">
+                                <div class="text-sm text-gray-500">
+                                    显示 <span id="pagination-start">0</span> - <span id="pagination-end">0</span> 条，共 <span id="pagination-total">0</span> 条
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button id="btn-page-first" class="px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 text-gray-600">首页</button>
+                                    <button id="btn-page-prev" class="px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 text-gray-600">上一页</button>
+                                    <span class="text-sm text-gray-600 px-2">
+                                        第 <input type="number" id="page-jump" class="w-14 px-2 py-1 border rounded-lg text-center text-sm" min="1" value="1"> / <span id="pagination-total-pages">1</span> 页
+                                    </span>
+                                    <button id="btn-page-next" class="px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 text-gray-600">下一页</button>
+                                    <button id="btn-page-last" class="px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 text-gray-600">末页</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compare View -->
+        <div id="view-compare" class="view-panel hidden">
+            <div class="bg-white rounded-2xl shadow flex flex-col h-[calc(100vh-220px)]">
+                <!-- Header & Nav Section -->
+                <div class="px-6 pt-6 flex-shrink-0">
+                    <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-semibold text-lg flex items-center gap-2">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        对比审核
+                    </h3>
+                    <div class="flex items-center gap-3">
+                        <span id="compare-index" class="text-sm text-gray-600">0 / 0</span>
+                        <span id="compare-status" class="status-badge pending">待审核</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-gray-500">筛选:</span>
+                            <button id="compare-filter-all" class="filter-btn active">全部</button>
+                            <button id="compare-filter-flagged" class="filter-btn">需审核</button>
+                            <button id="compare-filter-reviewed" class="filter-btn">已审核</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-6 flex justify-center mb-4 flex-shrink-0">
+                    <div class="bg-gray-100 rounded-full p-1 inline-flex">
+                        <button id="btn-compare-prev" class="px-4 py-2 rounded-lg hover:bg-gray-200 disabled:opacity-50">← 上一条</button>
+                        <button id="btn-compare-next" class="px-4 py-2 rounded-lg hover:bg-gray-200 disabled:opacity-50">下一条 →</button>
+                    </div>
+                </div>
+
+                <!-- Compare Container - fills remaining height -->
+                <div id="compare-container" class="flex-1 min-h-0 overflow-hidden px-6 pb-6">
+                    <!-- Content will be injected by JavaScript -->
+                    <div class="flex items-center justify-center h-full text-gray-400">
+                        选择记录查看对比
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-lg font-semibold mb-4">编辑记录</h3>
+            <div id="edit-form" class="space-y-4">
+                <!-- Dynamic form fields -->
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button id="btn-edit-cancel" class="px-4 py-2 border rounded-lg">取消</button>
+                <button id="btn-edit-save" class="px-4 py-2 bg-primary text-white rounded-lg">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Options Modal -->
+    <div id="export-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="flex items-center gap-3 mb-4">
+                <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                <h3 class="text-lg font-semibold">导出选项</h3>
+            </div>
+            <div class="space-y-4">
+                <div class="bg-blue-50 p-3 rounded-lg text-sm text-blue-700">
+                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    将导出 <span id="export-count" class="font-semibold">0</span> 条记录
+                </div>
+
+                <label class="flex items-start gap-3 p-3 border border-blue-200 bg-blue-50/50 rounded-lg hover:bg-blue-50 cursor-pointer">
+                    <input type="checkbox" id="export-full-text" class="mt-1 w-4 h-4 text-primary rounded" checked>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-medium text-gray-900">包含完整OCR文本</span>
+                            <span class="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-600 rounded">推荐</span>
+                        </div>
+                        <div class="text-sm text-gray-500">导出原始识别的完整文本</div>
+                    </div>
+                </label>
+
+                <label class="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox" id="export-image-note" class="mt-1 w-4 h-4 text-primary rounded">
+                    <div class="flex-1">
+                        <div class="font-medium text-gray-900">包含图片信息</div>
+                        <div class="text-sm text-gray-500">添加"含图片"标记列</div>
+                    </div>
+                </label>
+
+                <label class="flex items-start gap-3 p-3 border border-blue-200 bg-blue-50/50 rounded-lg hover:bg-blue-50 cursor-pointer">
+                    <input type="checkbox" id="export-filename" class="mt-1 w-4 h-4 text-primary rounded" checked>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-medium text-gray-900">包含原始文件名</span>
+                            <span class="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-600 rounded">推荐</span>
+                        </div>
+                        <div class="text-sm text-gray-500">添加"原始文件名"列便于追溯</div>
+                    </div>
+                </label>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button id="btn-export-cancel" class="px-4 py-2 border rounded-lg hover:bg-gray-50">取消</button>
+                <button id="btn-export-confirm" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-cyan-700 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    开始导出
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deduplication Modal -->
+    <div id="dedup-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="flex items-center gap-3 mb-4">
+                <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <h3 class="text-lg font-semibold">重复记录检测</h3>
+            </div>
+            <div id="dedup-results" class="space-y-3 max-h-96 overflow-y-auto">
+                <!-- Duplicate groups will be inserted here -->
+            </div>
+            <div id="dedup-summary" class="mt-4 p-3 bg-orange-50 rounded-lg hidden">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-orange-700">检测到 <span id="dedup-group-count" class="font-semibold">0</span> 组重复记录，共 <span id="dedup-total-count" class="font-semibold">0</span> 条</span>
+                    <div class="flex gap-2">
+                        <button id="btn-dedup-keep-newer" class="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600">
+                            保留全部新的
+                        </button>
+                        <button id="btn-dedup-keep-older" class="px-3 py-1.5 text-sm bg-gray-500 text-white rounded hover:bg-gray-600">
+                            保留全部旧的
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button id="btn-dedup-close" class="px-4 py-2 border rounded-lg hover:bg-gray-50">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear Data Confirmation Modal -->
+    <div id="clear-confirm-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="clear-confirm-title">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.932-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.932 3z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 id="clear-confirm-title" class="text-lg font-semibold text-gray-900">确认清空所有数据</h3>
+                    <p class="text-sm text-gray-500">此操作不可恢复</p>
+                </div>
+            </div>
+
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.932-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.932 3z"/>
+                    </svg>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-red-800 mb-1">警告：即将删除所有数据</p>
+                        <p class="text-sm text-red-700">您即将删除 <span id="clear-record-count" class="font-bold">0</span> 条识别记录，包括所有相关的图片和诊断信息。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-2 mb-6 text-sm text-gray-600">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span>建议：先备份数据再清空</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    <span>删除后无法恢复，请谨慎操作</span>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button id="btn-clear-backup-first" class="flex-1 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    先备份数据
+                </button>
+                <button id="btn-clear-confirm-delete" class="flex-1 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    确认删除
+                </button>
+            </div>
+            <div class="mt-3">
+                <button id="btn-clear-cancel" class="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="flex items-center justify-between mb-6">
+                <h3 id="settings-title" class="text-xl font-semibold text-gray-900">系统设置</h3>
+                <button id="btn-settings-close" class="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="space-y-6">
+                <!-- API Token Configuration -->
+                <div class="space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964a6 6 0 016.828 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900">API Token 配置</h4>
+                            <p class="text-sm text-gray-500">用于连接 OCR 识别服务</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Token</label>
+                        <div class="flex gap-2">
+                            <input type="password" id="settings-api-token" placeholder="请输入 API Token"
+                                class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <button id="btn-toggle-token-visibility" class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50" title="显示/隐藏">
+                                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Token Status -->
+                    <div id="token-status" class="flex items-center gap-2 text-sm mb-4">
+                        <span class="status-badge pending">未配置</span>
+                        <span class="text-gray-500">请输入 Token 后点击保存</span>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex gap-2">
+                        <button id="btn-save-token" class="flex-1 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            保存 Token
+                        </button>
+                        <button id="btn-clear-token" class="px-4 py-2.5 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 011-1h2a1 1 0 011 1v3M4 7h16"/>
+                            </svg>
+                            清空
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Help Info -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div class="text-sm text-blue-800">
+                            <p class="font-medium mb-1">如何获取 API Token?</p>
+                            <p class="text-blue-700">请访问 AI Studio 平台，在您的项目中创建或复制 API Token</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- First Time Guide Modal -->
+    <div id="guide-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+        <div class="modal-content" style="max-width: 600px;">
+            <!-- Progress Steps -->
+            <div class="flex items-center justify-center gap-2 mb-6">
+                <div class="guide-step active" data-step="1">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-medium">1</div>
+                    <div class="text-xs text-center mt-1 text-blue-600">欢迎</div>
+                </div>
+                <div class="w-12 h-0.5 bg-gray-300"></div>
+                <div class="guide-step" data-step="2">
+                    <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-medium">2</div>
+                    <div class="text-xs text-center mt-1 text-gray-500">配置</div>
+                </div>
+                <div class="w-12 h-0.5 bg-gray-300"></div>
+                <div class="guide-step" data-step="3">
+                    <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-medium">3</div>
+                    <div class="text-xs text-center mt-1 text-gray-500">开始</div>
+                </div>
+            </div>
+
+            <!-- Step 1: Welcome -->
+            <div id="guide-step-1" class="guide-content">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <h3 id="guide-title" class="text-2xl font-bold text-gray-900 mb-2">欢迎使用医疗病例 OCR 识别系统</h3>
+                    <p class="text-gray-600">快速、准确地识别医疗病例文档</p>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <svg class="w-8 h-8 text-blue-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        <p class="text-sm font-medium">批量上传</p>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <svg class="w-8 h-8 text-green-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <p class="text-sm font-medium">智能识别</p>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <svg class="w-8 h-8 text-purple-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+                        </svg>
+                        <p class="text-sm font-medium">质量控制</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button id="btn-guide-skip" class="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                        跳过引导
+                    </button>
+                    <button id="btn-guide-next-1" class="flex-1 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        下一步
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Configure Token -->
+            <div id="guide-step-2" class="guide-content hidden">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964a6 6 0 016.828 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">配置 API Token</h3>
+                    <p class="text-gray-600">需要配置 API Token 才能使用 OCR 识别功能</p>
+                </div>
+
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.932-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.932 3z"/>
+                        </svg>
+                        <div class="text-sm text-yellow-800">
+                            <p class="font-medium mb-1">重要提示</p>
+                            <p class="text-yellow-700">API Token 是访问 OCR 服务的密钥，请妥善保管。本系统不会将您的 Token 发送给任何第三方服务器。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">API Token</label>
+                    <input type="password" id="guide-api-token" placeholder="请输入您的 API Token"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg">
+                </div>
+
+                <div class="flex gap-3">
+                    <button id="btn-guide-back-2" class="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                        上一步
+                    </button>
+                    <button id="btn-guide-next-2" class="flex-1 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        保存并继续
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Get Started -->
+            <div id="guide-step-3" class="guide-content hidden">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">准备就绪！</h3>
+                    <p class="text-gray-600">API Token 已配置完成，现在可以开始使用了</p>
+                </div>
+
+                <div class="space-y-3 mb-6">
+                    <div class="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span class="text-sm text-green-800">上传病历文件（支持 JPG、PNG、PDF）</span>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span class="text-sm text-blue-800">点击"开始识别"进行批量处理</span>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
+                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span class="text-sm text-purple-800">在"对比审核"中查看和编辑识别结果</span>
+                    </div>
+                </div>
+
+                <button id="btn-guide-finish" class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5-5m5 5H6"/>
+                    </svg>
+                    开始使用
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <script src="js/pro-state.js"></script>
+    <script src="js/pro-parser.js"></script>
+    <script src="js/pro-files.js"></script>
+    <script src="js/pro-queue-ops.js"></script>
+    <script src="js/pro-queue-ui.js"></script>
+    <script src="js/pro-ocr.js"></script>
+    <script src="js/pro-export-excel.js"></script>
+    <script src="js/pro-export-csv.js"></script>
+    <script src="js/pro-export-entry.js"></script>
+    <script src="js/pro-export-modal.js"></script>
+    <script src="js/pro-data-backup.js"></script>
+    <script src="js/pro-data-dedup.js"></script>
+    <script src="js/pro-dashboard.js"></script>
+    <script src="js/pro-table.js"></script>
+    <script src="js/pro-tabs.js"></script>
+    <script src="js/pro-compare-render.js"></script>
+    <script src="js/pro-image-drag.js"></script>
+    <script src="js/pro-events-config.js"></script>
+    <script src="js/pro-events-upload.js"></script>
+    <script src="js/pro-events-tabs.js"></script>
+    <script src="js/pro-events-search.js"></script>
+    <script src="js/pro-events-select.js"></script>
+    <script src="js/pro-events-pagination.js"></script>
+    <script src="js/pro-events-batch.js"></script>
+    <script src="js/pro-events-compare-nav.js"></script>
+    <script src="js/pro-events-compare-filter.js"></script>
+    <script src="js/pro-events-compare-actions.js"></script>
+    <script src="js/pro-events-keyboard.js"></script>
+    <script src="js/pro-settings-guide.js"></script>
+    <script src="js/pro-focus-manager.js"></script>
+    <script src="js/pro-init.js"></script>
+</body>
+</html>
