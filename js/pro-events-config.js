@@ -6,29 +6,39 @@
 // ============================================================================
 // TOKEN CONFIG (Legacy - kept for compatibility with token-card)
 // ============================================================================
-dom.apiToken.value = state.token;
+// Note: Token input has been moved to settings modal
+// Check if legacy apiToken element exists before using it
+if (dom.apiToken) {
+    dom.apiToken.value = state.token;
 
-dom.apiToken.onblur = () => {
-    const newToken = dom.apiToken.value.trim();
-    if (newToken !== state.token) {
-        state.token = newToken;
-        localStorage.setItem('aistudio_token', newToken);
-        showToast('Token 已保存');
-        updateNetworkStatus();
-    }
-};
+    dom.apiToken.onblur = () => {
+        const newToken = dom.apiToken.value.trim();
+        if (newToken !== state.token) {
+            state.token = newToken;
+            localStorage.setItem('aistudio_token', newToken);
+            showToast('Token 已保存');
+            updateNetworkStatus();
+        }
+    };
+}
 
-document.getElementById('save-token').onclick = () => {
-    const newToken = dom.apiToken.value.trim();
-    if (newToken) {
-        state.token = newToken;
-        localStorage.setItem('aistudio_token', newToken);
-        showToast('Token 已保存');
-        updateNetworkStatus();
-    } else {
-        showToast('请输入 Token', 'warning');
-    }
-};
+// Legacy save-token button (if exists)
+const saveTokenBtn = document.getElementById('save-token');
+if (saveTokenBtn) {
+    saveTokenBtn.onclick = () => {
+        if (dom.apiToken) {
+            const newToken = dom.apiToken.value.trim();
+            if (newToken) {
+                state.token = newToken;
+                localStorage.setItem('aistudio_token', newToken);
+                showToast('Token 已保存');
+                updateNetworkStatus();
+            } else {
+                showToast('请输入 Token', 'warning');
+            }
+        }
+    };
+}
 
 // ============================================================================
 // NETWORK STATUS (Updated for new header location)

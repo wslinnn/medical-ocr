@@ -126,6 +126,7 @@ async function processQueue() {
         }
 
         saveRecords();
+        renderRecords();
         updateRecentResults();
         updateQueueUI();
     }
@@ -195,5 +196,14 @@ async function callOCRAPI(fileData, fileType) {
         throw new Error(`API 请求失败 (状态码: ${response.status})`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    
+    // Handle business logic error codes in the response body
+    if (data.errorCode === 401) {
+        throw new Error('Token 无效或已过期 (errorCode: 401)');
+    } else if (data.errorCode && data.errorCode !== 0) {
+        throw new Error(data.errorMsg || data.message || `请求失败 (errorCode: ${data.errorCode})`);
+    }
+
+    return data;
 }

@@ -94,7 +94,6 @@ document.getElementById('btn-dedup-check').onclick = () => {
 };
 
 function performDeduplication() {
-    const SIMILARITY_THRESHOLD = 0.85;  // 85% similarity threshold
     const processedRecords = new Set();
     duplicateGroups = [];
 
@@ -111,35 +110,13 @@ function performDeduplication() {
 
             const record2 = state.records[j];
 
-            // Check exact match on normalized fields first
+            // Deduplication strategy: Filename + Name
+            // Check if both filename and name match (exact match after normalization)
+            const fileNameMatch = normalizeText(record1.fileName) === normalizeText(record2.fileName);
             const nameMatch = normalizeText(record1.name) === normalizeText(record2.name);
-            const diagnosisMatch = normalizeText(record1.diagnosis) === normalizeText(record2.diagnosis);
 
-            // Check fuzzy similarity if exact match fails
-            const nameSimilarity = calculateSimilarity(record1.name || '', record2.name || '');
-            const diagnosisSimilarity = calculateSimilarity(record1.diagnosis || '', record2.diagnosis || '');
-
-            // Additional field checks
-            const ageMatch = (record1.age || '') === (record2.age || '');
-            const genderMatch = (record1.gender || '') === (record2.gender || '');
-
-            // Determine if records are duplicates
-            let isDuplicate = false;
-
-            // Strong match: exact name + high diagnosis similarity
-            if (nameMatch && diagnosisSimilarity >= SIMILARITY_THRESHOLD) {
-                isDuplicate = true;
-            }
-            // Medium match: high name similarity + exact diagnosis
-            else if (nameSimilarity >= SIMILARITY_THRESHOLD && diagnosisMatch) {
-                isDuplicate = true;
-            }
-            // Weak match: both fields have high similarity + matching age/gender
-            else if (nameSimilarity >= SIMILARITY_THRESHOLD &&
-                     diagnosisSimilarity >= SIMILARITY_THRESHOLD &&
-                     ageMatch && genderMatch) {
-                isDuplicate = true;
-            }
+            // Records are considered duplicates if both filename and name match
+            const isDuplicate = fileNameMatch && nameMatch;
 
             if (isDuplicate) {
                 group.push(record2);
@@ -148,7 +125,8 @@ function performDeduplication() {
         }
 
         if (group.length > 1) {
-            group.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            // Sort with oldest first (ascending order) - oldest is the original record
+            group.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
             duplicateGroups.push(group);
         }
     }
@@ -178,25 +156,40 @@ function renderDuplicateGroups() {
         const record = group[0];
         const div = document.createElement('div');
         div.className = 'p-3 bg-gray-50 rounded-lg';
+
+        // Build display text using available fields
+        const displayParts = [record.name];
+        if (record.postopPathology && record.postopPathology !== '未检出') {
+            displayParts.push(record.postopPathology.substring(0, 20));
+        } else if (record.biopsyPathology && record.biopsyPathology !== '未检出') {
+            displayParts.push(record.biopsyPathology.substring(0, 20));
+        }
+        const displayText = displayParts.join(' - ');
+
         div.innerHTML = `
             <div class="flex items-center justify-between mb-2">
-                <span class="font-medium text-gray-900">${record.name} - ${record.diagnosis}</span>
+                <span class="font-medium text-gray-900">${displayText}</span>
                 <span class="text-sm text-gray-500">${group.length} 条重复</span>
             </div>
             <div class="space-y-1">
-                ${group.map((r, i) => `
-                    <div class="flex items-center justify-between text-sm p-2 rounded ${i === 0 ? 'bg-green-50 border border-green-200' : 'bg-white border border-gray-200'}">
+                ${group.map((r, i) => {
+                    const isFirst = i === 0;
+                    const isLast = i === group.length - 1;
+                    const label = isFirst ? '★ 最旧 (推荐)' : isLast ? '最新' : '重复';
+                    return `
+                    <div class="flex items-center justify-between text-sm p-2 rounded ${isFirst ? 'bg-green-50 border border-green-200' : 'bg-white border border-gray-200'}">
                         <div class="flex items-center gap-2">
-                            <span class="${i === 0 ? 'text-green-600' : 'text-gray-500'}">${i === 0 ? '★ ' : ''}${new Date(r.createdAt).toLocaleString('zh-CN')}</span>
+                            <span class="${isFirst ? 'text-green-600' : 'text-gray-500'}">${label} - ${new Date(r.createdAt).toLocaleString('zh-CN')}</span>
                             ${r.imageData ? '<span class="text-xs text-blue-500">含图</span>' : ''}
                         </div>
                         <div class="flex gap-1">
-                            ${i === 0 ? '<span class="text-xs text-green-600">推荐保留</span>' : `
+                            ${isFirst ? '<span class="text-xs text-green-600">推荐保留</span>' : `
                                 <button class="px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded" onclick="removeDuplicateRecord(${groupIndex}, ${i})">删除</button>
                             `}
                         </div>
                     </div>
-                `).join('')}
+                    `;
+                }).join('')}
             </div>
         `;
         container.appendChild(div);
@@ -206,10 +199,20 @@ function renderDuplicateGroups() {
 // ============================================================================
 // REMOVE DUPLICATE RECORD
 // ============================================================================
-window.removeDuplicateRecord = function(groupIndex, recordIndex) {
+window.removeDuplicateRecord = async function(groupIndex, recordIndex) {
     const group = duplicateGroups[groupIndex];
     const record = group[recordIndex];
 
+    // Delete from IndexedDB first
+    try {
+        await db.delete(record.id);
+    } catch (e) {
+        console.error('删除记录失败:', e);
+        showToast('删除失败', 'error');
+        return;
+    }
+
+    // Remove from memory
     state.records = state.records.filter(r => r.id !== record.id);
     group.splice(recordIndex, 1);
 
@@ -217,7 +220,6 @@ window.removeDuplicateRecord = function(groupIndex, recordIndex) {
         duplicateGroups.splice(groupIndex, 1);
     }
 
-    saveRecords();
     renderRecords();
     updateRecentResults();
 
@@ -235,38 +237,68 @@ window.removeDuplicateRecord = function(groupIndex, recordIndex) {
 // ============================================================================
 // BATCH DEDUP ACTIONS
 // ============================================================================
-document.getElementById('btn-dedup-keep-newer').onclick = () => {
+// Keep newest (delete all except the last one in each group - sorted oldest to newest)
+document.getElementById('btn-dedup-keep-newer').onclick = async () => {
     let removedCount = 0;
+    const idsToDelete = [];
 
-    duplicateGroups.forEach(group => {
-        for (let i = 1; i < group.length; i++) {
-            state.records = state.records.filter(r => r.id !== group[i].id);
-            removedCount++;
-        }
-    });
-
-    saveRecords();
-    renderRecords();
-    updateRecentResults();
-    document.getElementById('dedup-modal').classList.remove('active');
-    showToast(`已删除 ${removedCount} 条重复记录，保留较新的记录`);
-};
-
-document.getElementById('btn-dedup-keep-older').onclick = () => {
-    let removedCount = 0;
-
+    // Collect IDs to delete (all except the last/newest in each group)
     duplicateGroups.forEach(group => {
         for (let i = 0; i < group.length - 1; i++) {
-            state.records = state.records.filter(r => r.id !== group[i].id);
+            idsToDelete.push(group[i].id);
             removedCount++;
         }
     });
 
-    saveRecords();
+    // Delete from IndexedDB
+    try {
+        for (const id of idsToDelete) {
+            await db.delete(id);
+        }
+    } catch (e) {
+        console.error('批量删除失败:', e);
+        showToast('删除失败', 'error');
+        return;
+    }
+
+    // Update memory
+    state.records = state.records.filter(r => !idsToDelete.includes(r.id));
     renderRecords();
     updateRecentResults();
     document.getElementById('dedup-modal').classList.remove('active');
-    showToast(`已删除 ${removedCount} 条重复记录，保留较旧的记录`);
+    showToast(`已删除 ${removedCount} 条重复记录，保留最新的记录`);
+};
+
+// Keep oldest (delete all except the first one in each group - sorted oldest to newest)
+document.getElementById('btn-dedup-keep-older').onclick = async () => {
+    let removedCount = 0;
+    const idsToDelete = [];
+
+    // Collect IDs to delete (all except the first/oldest in each group)
+    duplicateGroups.forEach(group => {
+        for (let i = 1; i < group.length; i++) {
+            idsToDelete.push(group[i].id);
+            removedCount++;
+        }
+    });
+
+    // Delete from IndexedDB
+    try {
+        for (const id of idsToDelete) {
+            await db.delete(id);
+        }
+    } catch (e) {
+        console.error('批量删除失败:', e);
+        showToast('删除失败', 'error');
+        return;
+    }
+
+    // Update memory
+    state.records = state.records.filter(r => !idsToDelete.includes(r.id));
+    renderRecords();
+    updateRecentResults();
+    document.getElementById('dedup-modal').classList.remove('active');
+    showToast(`已删除 ${removedCount} 条重复记录，保留最旧的记录`);
 };
 
 document.getElementById('btn-dedup-close').onclick = () => {

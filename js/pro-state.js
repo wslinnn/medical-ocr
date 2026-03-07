@@ -37,7 +37,7 @@ function generateUniqueId() {
 
 const state = {
     token: localStorage.getItem('aistudio_token') || '',
-    records: safeParseLocalStorage('records', []),
+    records: [], // 初始为空，从 IndexedDB 加载
     fileQueue: [],
     compareIndex: -1,
     imageZoom: 100,
@@ -48,7 +48,7 @@ const state = {
     // Pagination
     pagination: {
         currentPage: 1,
-        pageSize: 50,
+        pageSize: 20,
         get totalPages() {
             return Math.ceil(state.records.length / this.pageSize);
         }
@@ -62,6 +62,46 @@ const state = {
     // Processing control
     shouldStopProcessing: false
 };
+
+// ============================================================================
+// PERSISTENCE (IndexedDB)
+// ============================================================================
+async function saveRecords() {
+    try {
+        await db.saveAll(state.records);
+    } catch (e) {
+        console.error('保存数据到 IndexedDB 失败:', e);
+        showToast('数据保存失败', 'error');
+    }
+}
+
+async function loadRecords() {
+    try {
+        await db.init();
+        const records = await db.getAll();
+        state.records = records || [];
+        
+        // 兼容性检查：如果 localStorage 中还有数据，则迁移
+        const legacyData = localStorage.getItem('records');
+        if (legacyData) {
+            try {
+                const legacyRecords = JSON.parse(legacyData);
+                if (legacyRecords && legacyRecords.length > 0) {
+                    console.log('检测到旧版 localStorage 数据，正在迁移...');
+                    state.records = [...state.records, ...legacyRecords];
+                    await saveRecords();
+                    localStorage.removeItem('records');
+                    console.log('数据迁移成功');
+                }
+            } catch (e) {
+                console.error('迁移旧数据失败:', e);
+            }
+        }
+    } catch (e) {
+        console.error('初始化数据库失败:', e);
+        showToast('数据库初始化失败', 'error');
+    }
+}
 
 // ============================================================================
 // DOM ELEMENTS
@@ -92,6 +132,8 @@ const dom = {
 // ============================================================================
 function showToast(message, type = 'success') {
     const container = document.getElementById('toast-container');
+    if (!container) return;
+
     const toast = document.createElement('div');
     const colors = { success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-yellow-500', info: 'bg-blue-500' };
     const icons = {
@@ -107,19 +149,4 @@ function showToast(message, type = 'success') {
         toast.classList.add('hiding');
         setTimeout(() => toast.remove(), 300);
     }, 2000);
-}
-
-function saveRecords() {
-    try {
-        const data = JSON.stringify(state.records);
-        localStorage.setItem('records', data);
-    } catch (e) {
-        if (e.name === 'QuotaExceededError') {
-            showToast('存储空间不足，请清理旧数据或导出备份', 'error');
-            console.error('localStorage配额已满:', e);
-        } else {
-            console.error('保存记录失败:', e);
-            showToast('保存失败: ' + e.message, 'error');
-        }
-    }
 }

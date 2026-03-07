@@ -6,20 +6,24 @@
 // ============================================================================
 // APPLICATION INITIALIZATION
 // ============================================================================
-function init() {
+async function init() {
+    // Load records from IndexedDB first
+    await loadRecords();
+
     // Load token
-    dom.apiToken.value = state.token;
+    if (dom.apiToken) dom.apiToken.value = state.token;
 
     // Update network status
     updateNetworkStatus();
 
-    // Update recent results
+    // Update table and results
+    renderRecords();
     updateRecentResults();
 
     // Initialize tab
     switchTab('upload');
 
-    console.log('Medical OCR Pro - Initialized');
+    console.log('Medical OCR Pro - Initialized with IndexedDB');
 }
 
 // Initialize on load

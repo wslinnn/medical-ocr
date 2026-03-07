@@ -24,20 +24,15 @@ document.getElementById('btn-export-cancel').onclick = () => {
 
 document.getElementById('btn-export-confirm').onclick = () => {
     const options = {
-        includeFullText: document.getElementById('export-full-text').checked,
-        includeImageNote: document.getElementById('export-image-note').checked,
-        includeFilename: document.getElementById('export-filename').checked
+        includeFilename: document.getElementById('export-filename').checked,
+        includeTime: document.getElementById('export-time').checked
     };
 
     document.getElementById('export-modal').classList.remove('active');
 
     if (pendingExportRecords) {
-        if (typeof XLSX !== 'undefined' && XLSX.utils) {
-            exportRecordsToExcel(pendingExportRecords, pendingExportFilename, options);
-        } else {
-            console.log('XLSX not available, using CSV export');
-            exportToCSV(pendingExportRecords, options);
-        }
+        // 直接使用 CSV 导出
+        exportToCSV(pendingExportRecords, options);
     }
 
     pendingExportRecords = null;

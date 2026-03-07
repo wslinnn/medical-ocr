@@ -11,15 +11,20 @@ function renderRecords() {
     const statusFilter = dom.filterStatus ? dom.filterStatus.value : '';
 
     let filteredRecords = state.records;
+
+    // Sort by createdAt descending by default
+    filteredRecords = [...filteredRecords].sort((a, b) =>
+        new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
     if (statusFilter) {
-        filteredRecords = state.records.filter(r => r.status === statusFilter);
+        filteredRecords = filteredRecords.filter(r => r.status === statusFilter);
     }
 
     const searchTerm = dom.searchInput ? dom.searchInput.value.toLowerCase() : '';
     if (searchTerm) {
         filteredRecords = filteredRecords.filter(r =>
-            r.name.toLowerCase().includes(searchTerm) ||
-            r.diagnosis.toLowerCase().includes(searchTerm)
+            (r.name && r.name.toLowerCase().includes(searchTerm))
         );
     }
 
@@ -46,7 +51,7 @@ function renderRecords() {
 
         tbody.innerHTML = `
             <tr>
-                <td colspan="10" class="text-center py-12">
+                <td colspan="12" class="text-center py-12">
                     <div class="flex flex-col items-center">
                         <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -72,20 +77,38 @@ function renderRecords() {
         flagged: '<span class="status-badge flagged">需复核</span>'
     };
 
-    tbody.innerHTML = paginatedRecords.map(r => `
+    tbody.innerHTML = paginatedRecords.map(r => {
+        // Format the parsing time
+        const createdAt = r.createdAt ? new Date(r.createdAt) : null;
+        const timeStr = createdAt ? createdAt.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        }) : '-';
+
+        return `
         <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0">
             <td class="px-4 py-3 text-center"><input type="checkbox" class="record-checkbox w-4 h-4" data-id="${r.id}"></td>
-            <td class="px-4 py-3 text-gray-600">${r.gender}</td>
-            <td class="px-4 py-3 text-gray-600">${r.age}</td>
-            <td class="px-4 py-3 text-gray-600 max-w-xs truncate" title="${r.diagnosis}">${r.diagnosis}</td>
-            <td class="px-4 py-3 text-gray-600">${r.stage}</td>
+            <td class="px-4 py-3 text-gray-600 font-medium">${r.name || '-'}</td>
+            <td class="px-4 py-3 text-gray-600 text-sm max-w-[120px] truncate" title="${r.biopsyPathology || ''}">${r.biopsyPathology || '-'}</td>
+            <td class="px-4 py-3 text-gray-600 text-sm">${r.tnmStage || '-'}</td>
+            <td class="px-4 py-3 text-gray-600 text-sm">${r.surgeryTime || '-'}</td>
+            <td class="px-4 py-3 text-gray-600 text-sm max-w-[150px] truncate" title="${r.postopPathology || ''}">${r.postopPathology || '-'}</td>
+            <td class="px-4 py-3 text-gray-600 text-sm">${r.her2Status || '-'}</td>
+            <td class="px-4 py-3 text-gray-600 text-sm">${r.erStatus || '-'}</td>
+            <td class="px-4 py-3 text-gray-600 text-sm">${r.ki67 || '-'}</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">${timeStr}</td>
             <td class="px-4 py-3">${statusBadges[r.status]}</td>
-            <td class="px-4 py-3 text-sm text-gray-500">${new Date(r.createdAt).toLocaleString('zh-CN')}</td>
             <td class="px-4 py-3">
-                <button class="text-primary hover:text-cyan-700 font-medium" onclick="viewRecord(${r.id})">查看</button>
+                <div class="flex gap-2">
+                    <button class="text-primary hover:text-cyan-700 font-medium" onclick="viewRecord(${r.id})">查看</button>
+                </div>
             </td>
         </tr>
-    `).join('');
+        `;
+    }).join('');
 
     tbody.querySelectorAll('.record-checkbox').forEach(cb => {
         cb.onchange = updateSelectedCount;

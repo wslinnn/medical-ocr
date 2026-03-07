@@ -92,7 +92,7 @@ document.getElementById('btn-batch-export').onclick = () => {
 // ============================================================================
 // BATCH DELETE
 // ============================================================================
-document.getElementById('btn-batch-delete').onclick = () => {
+document.getElementById('btn-batch-delete').onclick = async () => {
     const ids = getSelectedRecordIds();
     if (ids.length === 0) {
         showToast('请先选择记录', 'warning');
@@ -100,12 +100,23 @@ document.getElementById('btn-batch-delete').onclick = () => {
     }
 
     if (confirm(`确定要删除选中的 ${ids.length} 条记录吗？此操作不可恢复。`)) {
-        state.records = state.records.filter(r => !ids.includes(r.id));
-        saveRecords();
-        renderRecords();
-        updateRecentResults();
-        updateSelectedCount();
-        dom.selectAll.checked = false;
-        showToast(`已删除 ${ids.length} 条记录`);
+        try {
+            // Delete from IndexedDB first
+            for (const id of ids) {
+                await db.delete(id);
+            }
+
+            // Then update memory
+            state.records = state.records.filter(r => !ids.includes(r.id));
+
+            renderRecords();
+            updateRecentResults();
+            updateSelectedCount();
+            dom.selectAll.checked = false;
+            showToast(`已删除 ${ids.length} 条记录`);
+        } catch (error) {
+            console.error('删除记录失败:', error);
+            showToast('删除记录失败: ' + error.message, 'error');
+        }
     }
 };

@@ -18,9 +18,8 @@ function sanitizeCSVFilename(filename) {
 
 function exportToCSV(records, options = {}) {
     const {
-        includeFullText = false,
-        includeImageNote = false,
-        includeFilename = false
+        includeFilename = false,
+        includeTime = false
     } = options;
 
     try {
@@ -28,22 +27,38 @@ function exportToCSV(records, options = {}) {
         let csvContent = '\uFEFF';
 
         // Build header row
-        let header = '姓名,性别,年龄,诊断,分期,状态,识别时间';
+        let header = '姓名,穿刺病理,TNM分期,手术时间,术后病理,HER2状态,ER状态,ki67';
         if (includeFilename) header += ',原始文件名';
-        if (includeImageNote) header += ',图片';
-        if (includeFullText) header += ',完整OCR文本';
+        if (includeTime) header += ',解析时间';
         csvContent += header + '\n';
 
         // Build data rows
         records.forEach(r => {
-            const statusText = r.status === 'pending' ? '待审核' : r.status === 'reviewed' ? '已审核' : '需复核';
-            const timeStr = new Date(r.createdAt).toLocaleString('zh-CN');
             const escape = (str) => '"' + (str || '').toString().replace(/"/g, '""') + '"';
 
-            let row = `${escape(r.name)},${escape(r.gender)},${escape(r.age)},${escape(r.diagnosis)},${escape(r.stage)},${escape(statusText)},${escape(timeStr)}`;
+            let row = `${escape(r.name || '未检出')},${escape(r.biopsyPathology || '未检出')},${escape(r.tnmStage || '待查')},${escape(r.surgeryTime || '未检出')},${escape(r.postopPathology || '未检出')},${escape(r.her2Status || '待查')},${escape(r.erStatus || '待查')},${escape(r.ki67 || '待查')}`;
             if (includeFilename) row += `,${escape(r.fileName || '')}`;
-            if (includeImageNote) row += `,${escape(r.imageData ? '是' : '否')}`;
-            if (includeFullText) row += `,${escape(r.originalText || '')}`;
+
+            // Format parsing time
+            if (includeTime) {
+                let timeStr = '-';
+                if (r.createdAt) {
+                    try {
+                        const date = new Date(r.createdAt);
+                        timeStr = date.toLocaleString('zh-CN', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                        });
+                    } catch (e) {
+                        timeStr = r.createdAt;
+                    }
+                }
+                row += `,${escape(timeStr)}`;
+            }
 
             csvContent += row + '\n';
         });
@@ -51,7 +66,7 @@ function exportToCSV(records, options = {}) {
         // Download file
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
-        const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const timestamp = new Date().toISOString();
         const safeFilename = sanitizeCSVFilename('医疗病例识别');
         link.href = URL.createObjectURL(blob);
         link.download = `${safeFilename}_${timestamp}.csv`;
@@ -60,9 +75,8 @@ function exportToCSV(records, options = {}) {
 
         // Show success message
         const optionsText = [
-            includeFullText ? '完整文本' : null,
-            includeImageNote ? '图片信息' : null,
-            includeFilename ? '文件名' : null
+            includeFilename ? '文件名' : null,
+            includeTime ? '解析时间' : null
         ].filter(Boolean).join('、');
 
         showToast(`成功导出 ${records.length} 条记录 (CSV${optionsText ? ', 含' + optionsText : ''})`);

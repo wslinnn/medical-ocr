@@ -29,27 +29,31 @@ document.getElementById('btn-backup').onclick = () => {
     }
 
     const backupData = {
-        version: '1.0',
+        version: '2.0',
         exportedAt: new Date().toISOString(),
         recordCount: state.records.length,
         records: state.records.map(r => ({
             id: r.id,
             fileName: r.fileName,
-            name: r.name,
-            gender: r.gender,
-            age: r.age,
-            diagnosis: r.diagnosis,
-            stage: r.stage,
-            originalText: r.originalText,
+            name: r.name || '未检出',
+            biopsyPathology: r.biopsyPathology || '未检出',
+            tnmStage: r.tnmStage || '待查',
+            surgeryTime: r.surgeryTime || '未检出',
+            postopPathology: r.postopPathology || '未检出',
+            her2Status: r.her2Status || '待查',
+            erStatus: r.erStatus || '待查',
+            ki67: r.ki67 || '待查',
+            originalText: r.originalText || '',
             status: r.status,
             createdAt: r.createdAt,
-            imageData: r.status === 'reviewed' ? r.imageData : null
+            // 导出所有有图片的记录，不限制状态
+            imageData: r.imageData || null
         }))
     };
 
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
-    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const timestamp = new Date().toISOString();
     link.href = URL.createObjectURL(blob);
     link.download = `医疗病例识别_备份_${timestamp}.json`;
     link.click();
@@ -65,12 +69,15 @@ document.getElementById('btn-import').onclick = () => {
     document.getElementById('import-file-input').click();
 };
 
-document.getElementById('import-file-input').onchange = (e) => {
+document.getElementById('import-file-input').onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Ensure database is initialized
+    await db.init();
+
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
         try {
             const data = JSON.parse(event.target.result);
 
@@ -79,24 +86,18 @@ document.getElementById('import-file-input').onchange = (e) => {
             }
 
             const importCount = data.records.length;
-            const mode = confirm(
-                `检测到备份文件包含 ${importCount} 条记录。\n\n` +
-                `点击"确定"追加到现有数据，点击"取消"替换所有数据。`
-            ) ? 'append' : 'replace';
 
-            if (mode === 'replace') {
-                state.records = data.records;
-            } else {
-                const existingIds = new Set(state.records.map(r => r.id));
-                const newRecords = data.records.filter(r => !existingIds.has(r.id));
-                state.records = [...state.records, ...newRecords];
-            }
+            // Always append mode - add new records that don't already exist
+            const existingIds = new Set(state.records.map(r => r.id));
+            const newRecords = data.records.filter(r => !existingIds.has(r.id));
+            state.records = [...state.records, ...newRecords];
 
-            saveRecords();
+            // Save to IndexedDB
+            await db.saveAll(newRecords);
             renderRecords();
             updateRecentResults();
 
-            showToast(`成功导入 ${mode === 'replace' ? importCount : newRecords.length} 条记录`);
+            showToast(`成功导入 ${newRecords.length} 条记录（跳过 ${importCount - newRecords.length} 条重复）`);
         } catch (error) {
             console.error('导入失败:', error);
             showToast('导入失败: ' + error.message, 'error');
@@ -152,26 +153,34 @@ document.getElementById('btn-clear-backup-first').onclick = () => {
 };
 
 // Confirm delete button
-document.getElementById('btn-clear-confirm-delete').onclick = () => {
+document.getElementById('btn-clear-confirm-delete').onclick = async () => {
     const count = state.records.length;
 
-    // Clear all records
-    state.records = [];
-    saveRecords();
-    renderRecords();
-    updateRecentResults();
+    try {
+        // Clear IndexedDB storage
+        await db.clear();
 
-    // Close modal
-    if (window.closeModalWithFocus) {
-        closeModalWithFocus('clear-confirm-modal');
-    } else {
-        document.getElementById('clear-confirm-modal').classList.remove('active');
+        // Clear all records in memory
+        state.records = [];
+
+        renderRecords();
+        updateRecentResults();
+
+        // Close modal
+        if (window.closeModalWithFocus) {
+            closeModalWithFocus('clear-confirm-modal');
+        } else {
+            document.getElementById('clear-confirm-modal').classList.remove('active');
+        }
+
+        // Hide dropdown
+        document.getElementById('data-menu-dropdown').classList.add('hidden');
+
+        showToast(`已清空 ${count} 条记录`, 'info');
+    } catch (error) {
+        console.error('清空数据失败:', error);
+        showToast('清空数据失败: ' + error.message, 'error');
     }
-
-    // Hide dropdown
-    document.getElementById('data-menu-dropdown').classList.add('hidden');
-
-    showToast(`已清空 ${count} 条记录`, 'info');
 };
 
 // Cancel button

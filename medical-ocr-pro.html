@@ -8,7 +8,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/xlsx@0.20.0/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="css/pro-style.css">
     <script>
         tailwind.config = {
@@ -190,7 +189,7 @@
                                 <svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                                 </svg>
-                                <input type="text" id="search-input" placeholder="搜索姓名或诊断..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <input type="text" id="search-input" placeholder="搜索姓名" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
                             <select id="filter-status" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
                                 <option value="">全部状态</option>
@@ -297,18 +296,21 @@
                                                 <input type="checkbox" id="select-all" class="record-checkbox w-4 h-4">
                                             </th>
                                             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">姓名</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">性别</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">年龄</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">诊断</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">分期</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">穿刺病理</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">TNM分期</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">手术时间</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">术后病理</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">HER2状态</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ER状态</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ki67</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">解析时间</th>
                                             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">状态</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">识别时间</th>
                                             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">操作</th>
                                         </tr>
                                     </thead>
                                     <tbody id="records-body" class="divide-y divide-gray-100">
                                         <tr>
-                                            <td colspan="10" class="px-4 py-12 text-center text-gray-400">暂无记录</td>
+                                            <td colspan="11" class="px-4 py-12 text-center text-gray-400">暂无记录</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -337,10 +339,9 @@
 
         <!-- Compare View -->
         <div id="view-compare" class="view-panel hidden">
-            <div class="bg-white rounded-2xl shadow flex flex-col h-[calc(100vh-220px)]">
+            <div class="bg-white rounded-2xl shadow p-6 flex flex-col h-[calc(100vh-220px)]">
                 <!-- Header & Nav Section -->
-                <div class="px-6 pt-6 flex-shrink-0">
-                    <div class="flex justify-between items-center mb-4">
+                <div class="flex justify-between items-center mb-4">
                     <h3 class="font-semibold text-lg flex items-center gap-2">
                         <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -367,14 +368,147 @@
                     </div>
                 </div>
 
-                <!-- Compare Container - fills remaining height -->
-                <div id="compare-container" class="flex-1 min-h-0 overflow-hidden px-6 pb-6">
-                    <!-- Content will be injected by JavaScript -->
-                    <div class="flex items-center justify-center h-full text-gray-400">
-                        选择记录查看对比
+                <!-- Compare Content - fills remaining height -->
+                <div class="flex-1 min-h-0 overflow-hidden flex gap-4">
+                    <!-- Default: No data state -->
+                    <div id="compare-no-data" class="h-full w-full flex items-center justify-center">
+                        <div class="text-center text-gray-400">
+                            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0118.586 5H19a2 2 0 012 2v14a2 2 0 01-2 2z"/>
+                            </svg>
+                            <p class="text-lg">暂无记录</p>
+                            <p class="text-sm mt-2">请先上传文件进行识别</p>
+                        </div>
+                    </div>
+
+                    <!-- Data state (hidden by default) -->
+                    <div id="compare-content" class="hidden h-full w-full min-h-0 flex gap-4">
+                        <!-- Left: Image Preview -->
+                        <div class="flex-1 min-w-0 bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col">
+                            <div class="split-panel-header px-4 py-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+                                <span class="font-medium">原图预览</span>
+                                <div class="flex items-center gap-2">
+                                    <button id="btn-zoom-out" class="p-1 hover:bg-gray-200 rounded" title="缩小 (Ctrl+-)">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                                        </svg>
+                                    </button>
+                                    <span id="zoom-level">100%</span>
+                                    <button id="btn-zoom-in" class="p-1 hover:bg-gray-200 rounded" title="放大 (Ctrl++)">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                        </svg>
+                                    </button>
+                                    <div class="w-px h-6 bg-gray-300"></div>
+                                    <button id="btn-rotate-left" class="p-1 hover:bg-gray-200 rounded" title="左旋转">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                        </svg>
+                                    </button>
+                                    <button id="btn-rotate-right" class="p-1 hover:bg-gray-200 rounded" title="右旋转">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 14h-10a8 8 0 00-8 8v-2M21 14l-6 6m6-6l-6-6"/>
+                                        </svg>
+                                    </button>
+                                    <div class="w-px h-6 bg-gray-300"></div>
+                                    <button id="btn-fit-window" class="p-1 hover:bg-gray-200 rounded text-sm" title="适应窗口 (Ctrl+0)">重置</button>
+                                </div>
+                            </div>
+                            <div id="image-container" class="flex-1 overflow-hidden flex items-center justify-center bg-gray-50 relative"
+                                onmousedown="startImageDrag(event)"
+                                onmousemove="dragImage(event)"
+                                onmouseup="stopImageDrag(event)"
+                                onmouseleave="stopImageDrag(event)">
+                                <img id="compare-image" class="image-preview" src="" style="display: none;">
+                                <div id="image-error" class="hidden items-center justify-center h-full text-center absolute inset-0">
+                                    <div>
+                                        <svg class="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                        <p class="text-gray-400">图片加载失败</p>
+                                    </div>
+                                </div>
+                                <p id="image-none" class="text-gray-400">无图片</p>
+                            </div>
+                        </div>
+
+                        <!-- Right: Recognition Results -->
+                        <div class="flex-1 min-w-0 bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col">
+                            <div class="px-4 py-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+                                <span class="font-medium text-gray-700">识别结果</span>
+                                <span id="compare-filename" class="text-sm text-gray-500"></span>
+                            </div>
+                            <div class="flex-1 overflow-y-auto p-4 min-h-0">
+                                <form id="compare-form" class="h-full flex flex-col min-h-0">
+                                    <div class="flex flex-col gap-3 flex-1 min-h-0">
+                                        <!-- First row: Name and Biopsy -->
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+                                                <div class="editable-cell" contenteditable="true" data-field="name" maxlength="20"></div>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">穿刺病理</label>
+                                                <div class="editable-cell" contenteditable="true" data-field="biopsyPathology" maxlength="100"></div>
+                                            </div>
+                                        </div>
+                                        <!-- Second row: TNM and Surgery -->
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">TNM分期</label>
+                                                <div class="editable-cell" contenteditable="true" data-field="tnmStage" maxlength="50"></div>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">手术时间</label>
+                                                <div class="editable-cell" contenteditable="true" data-field="surgeryTime" maxlength="50"></div>
+                                            </div>
+                                        </div>
+                                        <!-- Postop Pathology - full width -->
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">术后病理</label>
+                                            <div class="editable-cell" contenteditable="true" data-field="postopPathology" maxlength="200"></div>
+                                        </div>
+                                        <!-- Third row: HER2, ER, ki67 -->
+                                        <div class="grid grid-cols-3 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">HER2状态</label>
+                                                <div class="editable-cell" contenteditable="true" data-field="her2Status" maxlength="20"></div>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">ER状态</label>
+                                                <div class="editable-cell" contenteditable="true" data-field="erStatus" maxlength="20"></div>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">ki67</label>
+                                                <div class="editable-cell" contenteditable="true" data-field="ki67" maxlength="20"></div>
+                                            </div>
+                                        </div>
+                                        <!-- Original Text - flexible height -->
+                                        <div class="flex flex-col min-h-[100px] flex-1" style="min-height: 150px;">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1 flex-shrink-0">原始文本</label>
+                                            <div id="compare-original-text" class="flex-1 text-sm text-gray-500 overflow-y-auto bg-gray-50 p-2 rounded whitespace-pre-wrap"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex gap-3 pt-4 border-t flex-shrink-0 bg-white">
+                                        <button id="btn-compare-review" type="button" class="flex-1 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center justify-center gap-2">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                            确认审核
+                                        </button>
+                                        <button id="btn-compare-flag" type="button" class="flex-1 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 flex items-center justify-center gap-2">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.932-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.932 3z"/>
+                                            </svg>
+                                            需复核
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
         </div>
     </div>
 
@@ -410,25 +544,6 @@
                 </div>
 
                 <label class="flex items-start gap-3 p-3 border border-blue-200 bg-blue-50/50 rounded-lg hover:bg-blue-50 cursor-pointer">
-                    <input type="checkbox" id="export-full-text" class="mt-1 w-4 h-4 text-primary rounded" checked>
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2">
-                            <span class="font-medium text-gray-900">包含完整OCR文本</span>
-                            <span class="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-600 rounded">推荐</span>
-                        </div>
-                        <div class="text-sm text-gray-500">导出原始识别的完整文本</div>
-                    </div>
-                </label>
-
-                <label class="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <input type="checkbox" id="export-image-note" class="mt-1 w-4 h-4 text-primary rounded">
-                    <div class="flex-1">
-                        <div class="font-medium text-gray-900">包含图片信息</div>
-                        <div class="text-sm text-gray-500">添加"含图片"标记列</div>
-                    </div>
-                </label>
-
-                <label class="flex items-start gap-3 p-3 border border-blue-200 bg-blue-50/50 rounded-lg hover:bg-blue-50 cursor-pointer">
                     <input type="checkbox" id="export-filename" class="mt-1 w-4 h-4 text-primary rounded" checked>
                     <div class="flex-1">
                         <div class="flex items-center gap-2">
@@ -436,6 +551,14 @@
                             <span class="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-600 rounded">推荐</span>
                         </div>
                         <div class="text-sm text-gray-500">添加"原始文件名"列便于追溯</div>
+                    </div>
+                </label>
+
+                <label class="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox" id="export-time" class="mt-1 w-4 h-4 text-primary rounded">
+                    <div class="flex-1">
+                        <span class="font-medium text-gray-900">包含解析时间</span>
+                        <div class="text-sm text-gray-500">添加"解析时间"列显示识别时间</div>
                     </div>
                 </label>
             </div>
@@ -468,10 +591,10 @@
                     <span class="text-sm text-orange-700">检测到 <span id="dedup-group-count" class="font-semibold">0</span> 组重复记录，共 <span id="dedup-total-count" class="font-semibold">0</span> 条</span>
                     <div class="flex gap-2">
                         <button id="btn-dedup-keep-newer" class="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600">
-                            保留全部新的
+                            保留最新的
                         </button>
                         <button id="btn-dedup-keep-older" class="px-3 py-1.5 text-sm bg-gray-500 text-white rounded hover:bg-gray-600">
-                            保留全部旧的
+                            保留最旧的
                         </button>
                     </div>
                 </div>
@@ -774,13 +897,13 @@
     </div>
 
     <!-- JavaScript Modules -->
+    <script src="js/pro-db.js"></script>
     <script src="js/pro-state.js"></script>
     <script src="js/pro-parser.js"></script>
     <script src="js/pro-files.js"></script>
     <script src="js/pro-queue-ops.js"></script>
     <script src="js/pro-queue-ui.js"></script>
     <script src="js/pro-ocr.js"></script>
-    <script src="js/pro-export-excel.js"></script>
     <script src="js/pro-export-csv.js"></script>
     <script src="js/pro-export-entry.js"></script>
     <script src="js/pro-export-modal.js"></script>

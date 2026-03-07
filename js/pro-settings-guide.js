@@ -17,18 +17,24 @@ function openSettingsModal() {
     updateTokenStatus();
 
     // Show modal
-    if (window.openModalWithFocus) {
-        openModalWithFocus('settings-modal');
-    } else {
-        document.getElementById('settings-modal').classList.add('active');
+    const modal = document.getElementById('settings-modal');
+    if (modal) {
+        if (window.openModalWithFocus) {
+            openModalWithFocus('settings-modal');
+        } else {
+            modal.classList.add('active');
+        }
     }
 }
 
 function closeSettingsModal() {
-    if (window.closeModalWithFocus) {
-        closeModalWithFocus('settings-modal');
-    } else {
-        document.getElementById('settings-modal').classList.remove('active');
+    const modal = document.getElementById('settings-modal');
+    if (modal) {
+        if (window.closeModalWithFocus) {
+            closeModalWithFocus('settings-modal');
+        } else {
+            modal.classList.remove('active');
+        }
     }
 }
 
@@ -53,6 +59,8 @@ function updateTokenStatus() {
 
 function saveTokenFromSettings() {
     const tokenInput = document.getElementById('settings-api-token');
+    if (!tokenInput) return;
+
     const newToken = tokenInput.value.trim();
 
     // Allow empty token (user can clear it)
@@ -103,6 +111,8 @@ function toggleTokenVisibility() {
     const tokenInput = document.getElementById('settings-api-token');
     const toggleBtn = document.getElementById('btn-toggle-token-visibility');
 
+    if (!tokenInput || !toggleBtn) return;
+
     if (tokenInput.type === 'password') {
         tokenInput.type = 'text';
         toggleBtn.innerHTML = `
@@ -143,20 +153,26 @@ function shouldShowGuide() {
 
 // Show guide modal
 function showGuideModal() {
-    if (window.openModalWithFocus) {
-        openModalWithFocus('guide-modal');
-    } else {
-        document.getElementById('guide-modal').classList.add('active');
+    const modal = document.getElementById('guide-modal');
+    if (modal) {
+        if (window.openModalWithFocus) {
+            openModalWithFocus('guide-modal');
+        } else {
+            modal.classList.add('active');
+        }
+        showGuideStep(1);
     }
-    showGuideStep(1);
 }
 
 // Hide guide modal
 function hideGuideModal() {
-    if (window.closeModalWithFocus) {
-        closeModalWithFocus('guide-modal');
-    } else {
-        document.getElementById('guide-modal').classList.remove('active');
+    const modal = document.getElementById('guide-modal');
+    if (modal) {
+        if (window.closeModalWithFocus) {
+            closeModalWithFocus('guide-modal');
+        } else {
+            modal.classList.remove('active');
+        }
     }
     markGuideAsSeen();
 }
@@ -205,6 +221,11 @@ function nextGuideStep() {
         if (currentGuideStep === 2) {
             // Save token from guide
             const tokenInput = document.getElementById('guide-api-token');
+            if (!tokenInput) {
+                showToast('Token 输入框未找到', 'error');
+                return;
+            }
+
             const newToken = tokenInput.value.trim();
 
             if (!newToken) {
@@ -247,28 +268,36 @@ function finishGuide() {
 // ============================================================================
 // EVENT LISTENERS
 // ============================================================================
+// Helper function to safely attach event listener
+function safeOnClick(id, handler) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.onclick = handler;
+    }
+}
+
 // Settings button
-document.getElementById('btn-settings').onclick = openSettingsModal;
+safeOnClick('btn-settings', openSettingsModal);
 
 // Settings modal close button
-document.getElementById('btn-settings-close').onclick = closeSettingsModal;
+safeOnClick('btn-settings-close', closeSettingsModal);
 
 // Save token button in settings
-document.getElementById('btn-save-token').onclick = saveTokenFromSettings;
+safeOnClick('btn-save-token', saveTokenFromSettings);
 
 // Clear token button in settings
-document.getElementById('btn-clear-token').onclick = clearTokenFromSettings;
+safeOnClick('btn-clear-token', clearTokenFromSettings);
 
 // Toggle token visibility
-document.getElementById('btn-toggle-token-visibility').onclick = toggleTokenVisibility;
+safeOnClick('btn-toggle-token-visibility', toggleTokenVisibility);
 
 // Guide modal buttons
-document.getElementById('btn-guide-close').onclick = skipGuide;
-document.getElementById('btn-guide-skip').onclick = skipGuide;
-document.getElementById('btn-guide-next-1').onclick = nextGuideStep;
-document.getElementById('btn-guide-back-2').onclick = prevGuideStep;
-document.getElementById('btn-guide-next-2').onclick = nextGuideStep;
-document.getElementById('btn-guide-finish').onclick = finishGuide;
+safeOnClick('btn-guide-close', skipGuide);
+safeOnClick('btn-guide-skip', skipGuide);
+safeOnClick('btn-guide-next-1', nextGuideStep);
+safeOnClick('btn-guide-back-2', prevGuideStep);
+safeOnClick('btn-guide-next-2', nextGuideStep);
+safeOnClick('btn-guide-finish', finishGuide);
 
 // ============================================================================
 // INITIALIZATION
