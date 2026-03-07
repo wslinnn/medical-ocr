@@ -21,15 +21,7 @@ function updateQueueUI() {
         // Show current processing file and progress
         if (processingItem) {
             dom.progressText.textContent = `正在处理: ${processingItem.file.name}`;
-            // Calculate estimated time
-            const elapsedTime = Date.now() - state.processStartTime;
-            const avgTimePerItem = elapsedTime / (completed + failed + (processing ? 1 : 0.1));
-            const remainingItems = pending;
-            const estimatedSeconds = Math.ceil((avgTimePerItem * remainingItems) / 1000);
-            const timeText = estimatedSeconds > 60
-                ? `${Math.ceil(estimatedSeconds / 60)} 分钟`
-                : `${estimatedSeconds} 秒`;
-            dom.progressCounts.textContent = `已完成:${completed} | 处理中:${processing} | 待处理:${pending} | 预计剩余: ${timeText}${failed > 0 ? ' | 失败:' + failed : ''}`;
+            dom.progressCounts.textContent = `已完成:${completed} | 处理中:${processing} | 待处理:${pending}${failed > 0 ? ' | 失败:' + failed : ''}`;
         } else {
             dom.progressText.textContent = failed > 0 ? '部分失败' : '已完成';
             dom.progressCounts.textContent = `已完成:${completed} | 待处理:${pending}${failed > 0 ? ' | 失败:' + failed : ''}`;

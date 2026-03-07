@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, dialog, nativeTheme } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, dialog, nativeTheme, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -126,5 +126,16 @@ app.on('second-instance', () => {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 }
+
+// 打开系统浏览器
+ipcMain.handle('open-external', async (event, url) => {
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error) {
+    console.error('打开外部链接失败:', error);
+    return { success: false, error: error.message };
+  }
+});
 
 console.log('Medical OCR Pro - Main Process Started');

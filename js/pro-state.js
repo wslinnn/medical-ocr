@@ -37,6 +37,7 @@ function generateUniqueId() {
 
 const state = {
     token: localStorage.getItem('aistudio_token') || '',
+    model: localStorage.getItem('ocr_model') || 'qwen3.5-plus',
     records: [], // 初始为空，从 IndexedDB 加载
     fileQueue: [],
     compareIndex: -1,

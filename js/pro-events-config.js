@@ -41,6 +41,36 @@ if (saveTokenBtn) {
 }
 
 // ============================================================================
+// MODEL SELECTION CONFIG
+// ============================================================================
+const modelSelect = document.getElementById('settings-model');
+if (modelSelect) {
+    // Load saved model
+    const savedModel = localStorage.getItem('ocr_model');
+    if (savedModel) {
+        modelSelect.value = savedModel;
+        state.model = savedModel;
+    }
+
+    // Save model on change
+    modelSelect.onchange = () => {
+        const selectedModel = modelSelect.value;
+        localStorage.setItem('ocr_model', selectedModel);
+        state.model = selectedModel;
+        updateModelDisplay();
+        showToast('模型已切换为: ' + selectedModel);
+    };
+}
+
+// Update model display in header
+function updateModelDisplay() {
+    const modelText = document.getElementById('model-display-text');
+    if (modelText) {
+        modelText.textContent = '模型: ' + (state.model || 'qwen3.5-plus');
+    }
+}
+
+// ============================================================================
 // NETWORK STATUS (Updated for new header location)
 // ============================================================================
 function updateNetworkStatus() {
@@ -73,4 +103,5 @@ window.addEventListener('offline', () => {
 // Initialize network status on load
 document.addEventListener('DOMContentLoaded', () => {
     updateNetworkStatus();
+    updateModelDisplay();
 });

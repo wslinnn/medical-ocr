@@ -4,10 +4,14 @@
  */
 
 // ============================================================================
-// OCR API CONFIGURATION
+// OCR API CONFIGURATION - 千问大模型
 // ============================================================================
-const OCR_API_URL = 'https://dcgdvdfb03f3d3jd.aistudio-app.com/layout-parsing';
-const OCR_TIMEOUT = 30000; // 30 seconds
+const OCR_API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+const OCR_TIMEOUT = 60000; // 60 seconds (VLM needs more time)
+const MAX_IMAGE_SIZE = 7 * 1024 * 1024; // 7MB
+
+// OCR prompt - 让模型扮演医疗病例识别专家
+const OCR_PROMPT = `请识别图片内姓名、穿刺病理、TNM分期、手术时间、术后病理、HER2状态、ER状态、ki67这些分类的信息，按照不同分类输出，对于无法确定的就只输出无法确定。注意数据可能不止一侧。只单纯使用JSON格式输出上面原始分类内容，无需嵌套JSON和集合。`;
 
 // ============================================================================
 // QUEUE PROCESSING
@@ -49,79 +53,63 @@ async function processQueue() {
         updateQueueUI();
 
         try {
-            // Read file
+            // Check file size (only for images, not PDFs)
+            const fileSize = currentItem.file.size || 0;
+            if (currentItem.file.type && currentItem.file.type.includes('image') && fileSize > MAX_IMAGE_SIZE) {
+                throw new Error(`图片过大 (${(fileSize / 1024 / 1024).toFixed(1)}MB)，请使用小于7MB的图片`);
+            }
+
+            // Read file as base64
             let fileData;
+            let mimeType = currentItem.file.type || 'image/jpeg';
+
             if (currentItem.file.path) {
                 fileData = window.fs.readFileSync(currentItem.file.path).toString('base64');
             } else {
                 fileData = await readFileAsBase64(currentItem.file);
             }
 
-            // Determine file type
-            const fileType = currentItem.file.type && currentItem.file.type.includes('pdf') ? 0 : 1;
+            // Call OCR API (千问大模型)
+            const result = await callOCRAPI(fileData, mimeType);
 
-            // Call OCR API
-            const result = await callOCRAPI(fileData, fileType);
-
-            // Process result
-            if (result.result && result.result.layoutParsingResults) {
-                const text = result.result.layoutParsingResults[0]?.markdown?.text || '';
-                const parsed = parseMarkdown(text);
-
-                const record = {
-                    id: generateUniqueId(), // Use the new unique ID generator
-                    fileName: currentItem.file.name,
-                    ...parsed,
-                    originalText: text,
-                    status: 'pending',
-                    createdAt: new Date().toISOString(),
-                    imageData: currentItem.file.type && currentItem.file.type.includes('image') ? await readFileAsDataURL(currentItem.file) : null
-                };
-
-                state.records.unshift(record);
-                currentItem.status = 'completed';
-                currentItem.record = record;
-                successCount++;
-            } else {
-                if (result.error) {
-                    throw new Error(result.error.message || result.error);
-                }
+            // Process result - 千问返回的是content中的文本
+            // 简化判断：有响应+能解析到JSON=成功
+            if (!result.choices || !result.choices[0] || !result.choices[0].message) {
                 throw new Error('API 返回数据格式异常');
             }
+
+            const content = result.choices[0].message.content;
+            const parsed = parseQwenResponse(content); // JSON解析失败会抛出错误
+
+            const record = {
+                id: generateUniqueId(),
+                fileName: currentItem.file.name,
+                ...parsed,
+                originalText: content,
+                status: 'pending',
+                createdAt: new Date().toISOString(),
+                imageData: currentItem.file.type && currentItem.file.type.includes('image') ? await readFileAsDataURL(currentItem.file) : null
+            };
+
+            state.records.unshift(record);
+            currentItem.status = 'completed';
+            currentItem.record = record;
+            successCount++;
         } catch (error) {
             console.error('识别失败:', error);
 
-            // Determine error type and provide helpful message
+            // 简化判断：有响应=成功解析，无响应=请求失败
             let errorMessage = '识别失败';
-            let errorDetails = '';
+            let errorDetails = error.message || '未知错误';
 
-            if (error.message.includes('Token')) {
-                errorMessage = 'Token 无效';
-                errorDetails = 'API Token 已过期或无效，请检查配置';
-            } else if (error.message.includes('频繁') || error.message.includes('429')) {
-                errorMessage = '请求过于频繁';
-                errorDetails = 'API 请求次数超限，请稍后重试';
-            } else if (error.message.includes('不可用') || error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
-                errorMessage = 'API 服务异常';
-                errorDetails = 'API 服务暂时不可用，请稍后重试';
-            } else if (error.message.includes('超时') || error.message.includes('timeout')) {
-                errorMessage = '请求超时';
-                errorDetails = '处理时间过长，可能是文件过大或网络问题';
-            } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                errorMessage = '网络错误';
-                errorDetails = '无法连接到 API 服务器，请检查网络连接';
-            } else if (error.message.includes('API 返回数据格式异常')) {
-                errorMessage = '返回数据异常';
-                errorDetails = 'API 返回的数据格式不正确，可能是文件格式不支持';
-            } else {
-                // Generic error with original message
-                errorMessage = '识别失败';
-                errorDetails = error.message || '未知错误';
+            if (error.message.includes('JSON')) {
+                // 能解析到响应但JSON格式不对
+                errorMessage = '解析失败';
             }
 
             currentItem.status = 'failed';
             currentItem.error = errorMessage;
-            currentItem.errorDetails = errorDetails; // Store detailed error for display
+            currentItem.errorDetails = errorDetails;
             failCount++;
         }
 
@@ -166,44 +154,77 @@ function disableDataModifyingOperations(disable) {
 }
 
 // ============================================================================
-// OCR API CALL
+// OCR API CALL - 千问大模型
 // ============================================================================
-async function callOCRAPI(fileData, fileType) {
+async function callOCRAPI(fileData, mimeType) {
     const response = await fetch(OCR_API_URL, {
         method: 'POST',
         headers: {
-            'Authorization': `token ${state.token}`,
+            'Authorization': `Bearer ${state.token}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            file: fileData,
-            fileType: fileType,
-            useDocOrientationClassify: false,
-            useDocUnwarping: false,
-            useChartRecognition: false
+            model: state.model || 'qwen3.5-plus',
+            enable_thinking: false,
+            messages: [
+                {
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'image_url',
+                            image_url: {
+                                url: `data:${mimeType};base64,${fileData}`
+                            }
+                        },
+                        {
+                            type: 'text',
+                            text: OCR_PROMPT
+                        }
+                    ]
+                }
+            ]
         }),
         signal: AbortSignal.timeout(OCR_TIMEOUT)
     });
 
-    // Handle specific HTTP status codes
-    if (response.status === 401 || response.status === 403) {
-        throw new Error('Token 无效或已过期，请重新配置');
-    } else if (response.status === 429) {
-        throw new Error('API 请求过于频繁，请稍后重试');
-    } else if (response.status === 500 || response.status === 502 || response.status === 503) {
-        throw new Error('API 服务暂时不可用，请稍后重试');
-    } else if (!response.ok) {
-        throw new Error(`API 请求失败 (状态码: ${response.status})`);
+    // 有响应 = 成功请求
+    if (!response.ok) {
+        throw new Error(`请求失败: ${response.status}`);
     }
 
     const data = await response.json();
-    
+
     // Handle business logic error codes in the response body
-    if (data.errorCode === 401) {
-        throw new Error('Token 无效或已过期 (errorCode: 401)');
-    } else if (data.errorCode && data.errorCode !== 0) {
-        throw new Error(data.errorMsg || data.message || `请求失败 (errorCode: ${data.errorCode})`);
+    if (data.error) {
+        throw new Error(data.error.message || data.error.code || '请求失败');
     }
 
     return data;
+}
+
+// ============================================================================
+// PARSE QWEN RESPONSE - 解析千问返回的JSON结果
+// ============================================================================
+function parseQwenResponse(content) {
+    // 尝试从content中提取JSON
+    let jsonStr = content;
+
+    // 尝试找到JSON部分
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+        jsonStr = jsonMatch[0];
+    }
+
+    // 直接解析JSON，失败则抛出错误
+    const parsed = JSON.parse(jsonStr);
+    return {
+        name: parsed.姓名 || '',
+        biopsyPathology: parsed.穿刺病理 || '',
+        tnmStage: parsed.TNM分期 || '',
+        surgeryTime: parsed.手术时间 || '',
+        postopPathology: parsed.术后病理 || '',
+        her2Status: parsed.HER2状态 || '',
+        erStatus: parsed.ER状态 || '',
+        ki67: parsed.ki67 || ''
+    };
 }

@@ -108,7 +108,7 @@ function renderCompareContent(record) {
     if (filenameEl) filenameEl.textContent = record.fileName || '';
 
     const originalTextEl = document.getElementById('compare-original-text');
-    if (originalTextEl) originalTextEl.textContent = record.originalText || '无原始文本';
+    if (originalTextEl) originalTextEl.textContent = record.originalText || '无';
 
     const form = document.getElementById('compare-form');
     if (form) {

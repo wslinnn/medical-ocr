@@ -11,7 +11,7 @@ dom.dropZone.onclick = async (e) => {
         const result = await window.electron.dialog.showOpenDialog({
             title: '选择文件',
             properties: ['openFile', 'multiSelections'],
-            filters: [{ name: '图片', extensions: ['jpg', 'jpeg', 'png'] }, { name: 'PDF', extensions: ['pdf'] }]
+            filters: [{ name: '图片', extensions: ['jpg', 'jpeg', 'png'] }]
         });
         if (!result.canceled && result.filePaths.length > 0) {
             const fs = window.fs;
@@ -28,7 +28,7 @@ dom.dropZone.onclick = async (e) => {
         const input = document.createElement('input');
         input.type = 'file';
         input.multiple = true;
-        input.accept = 'image/*,.pdf';
+        input.accept = 'image/*';
         input.onchange = (e) => addFilesToQueue(Array.from(e.target.files));
         input.click();
     }

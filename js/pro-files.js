@@ -36,8 +36,7 @@ async function selectFiles() {
             title: '选择文件',
             properties: ['openFile', 'multiSelections'],
             filters: [
-                { name: '图片文件', extensions: ['jpg', 'jpeg', 'png', 'webp'] },
-                { name: 'PDF文件', extensions: ['pdf'] }
+                { name: '图片文件', extensions: ['jpg', 'jpeg', 'png', 'webp'] }
             ]
         });
         if (!result.canceled && result.filePaths.length > 0) {
@@ -55,7 +54,7 @@ async function selectFiles() {
         const input = document.createElement('input');
         input.type = 'file';
         input.multiple = true;
-        input.accept = 'image/*,.pdf';
+        input.accept = 'image/*';
         input.onchange = (e) => {
             const files = Array.from(e.target.files);
             addFilesToQueue(files);
@@ -69,7 +68,7 @@ async function selectFiles() {
 // ============================================================================
 function getAllFiles(folderPath, fs, path) {
     const files = [];
-    const supported = ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'pdf'];
+    const supported = ['jpg', 'jpeg', 'png', 'webp', 'bmp'];
 
     function traverse(dir) {
         try {
@@ -85,7 +84,7 @@ function getAllFiles(folderPath, fs, path) {
                             path: fullPath,
                             name: entry.name,
                             size: fs.statSync(fullPath).size,
-                            type: ext === 'pdf' ? 'application/pdf' : 'image/' + ext
+                            type: 'image/' + ext
                         });
                     }
                 }
@@ -102,8 +101,7 @@ function getFileType(filePath, path) {
         '.jpg': 'image/jpeg',
         '.jpeg': 'image/jpeg',
         '.png': 'image/png',
-        '.webp': 'image/webp',
-        '.pdf': 'application/pdf'
+        '.webp': 'image/webp'
     };
     return types[ext] || 'application/octet-stream';
 }
