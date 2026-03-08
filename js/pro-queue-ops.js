@@ -9,6 +9,10 @@ async function addFilesToQueue(files) {
         return;
     }
 
+    let addedCount = 0;
+    let duplicateCount = 0;
+    const duplicateFiles = [];
+
     for (const file of files) {
         const exists = state.fileQueue.find(q => q.file.name === file.name && q.file.size === file.size);
         if (!exists) {
@@ -24,13 +28,29 @@ async function addFilesToQueue(files) {
                 }
             }
             state.fileQueue.push({
-                id: generateUniqueId(), // Use the new unique ID generator
+                id: 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
                 file: file,
                 thumbnail: thumbnail,
                 status: 'pending'
             });
+            addedCount++;
+        } else {
+            duplicateCount++;
+            duplicateFiles.push(file.name);
         }
     }
+
+    // Show feedback to user
+    if (duplicateCount > 0) {
+        if (duplicateCount === 1) {
+            showToast(`"${duplicateFiles[0]}" 已存在队列中，跳过添加`, 'warning');
+        } else {
+            showToast(`已添加 ${addedCount} 个文件，${duplicateCount} 个文件已存在跳过`, 'warning');
+        }
+    } else if (addedCount > 0) {
+        showToast(`已添加 ${addedCount} 个文件到队列`);
+    }
+
     updateQueueUI();
 }
 
@@ -93,9 +113,13 @@ window.clearQueue = function() {
         showToast('队列为空，无需清空', 'info');
         return;
     }
-    if (confirm('确定要清空所有项目吗？')) {
+    showDeleteConfirmModal({
+        title: '确认清空队列',
+        message: `队列中共有 ${state.fileQueue.length} 项，确定要清空吗？`,
+        warning: '所有项目将被从队列中移除'
+    }, () => {
         state.fileQueue = [];
         updateQueueUI();
         showToast('队列已清空');
-    }
+    });
 };

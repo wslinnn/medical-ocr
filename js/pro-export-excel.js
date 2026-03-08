@@ -16,7 +16,7 @@ function sanitizeFilename(filename) {
         .replace(/^_|_$/g, '');          // Remove leading/trailing underscores
 }
 
-function exportRecordsToExcel(records, filenamePrefix, options = {}) {
+async function exportRecordsToExcel(records, filenamePrefix, options = {}) {
     console.log('Starting Excel export with', records.length, 'records');
 
     if (records.length === 0) {
@@ -24,6 +24,10 @@ function exportRecordsToExcel(records, filenamePrefix, options = {}) {
         return;
     }
 
+    // 显示加载状态
+    showLoading('正在导出数据...');
+
+    try {
     const {
         includeFilename = false,
         includeTime = false
@@ -112,5 +116,11 @@ function exportRecordsToExcel(records, filenamePrefix, options = {}) {
         includeTime ? '解析时间' : null
     ].filter(Boolean).join('、');
 
+    hideLoading();
     showToast(`成功导出 ${records.length} 条记录${optionsText ? ' (含' + optionsText + ')' : ''}`);
+    } catch (error) {
+        hideLoading();
+        console.error('导出失败:', error);
+        showToast('导出失败: ' + error.message, 'error');
+    }
 }

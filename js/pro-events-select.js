@@ -5,7 +5,7 @@
 
 dom.selectAll.onchange = (e) => {
     const checked = e.target.checked;
-    document.querySelectorAll('.record-checkbox').forEach(cb => cb.checked = checked);
+    document.querySelectorAll('.record-checkbox:not(#select-all)').forEach(cb => cb.checked = checked);
     // Clear indeterminate state after user interaction
     e.target.indeterminate = false;
     updateSelectedCount();

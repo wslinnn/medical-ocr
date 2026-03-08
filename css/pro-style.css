@@ -2,6 +2,9 @@
  * 医疗病例 AI 识别系统 Pro - 样式表
  * Medical AI Pro - Stylesheet
  */
+ @tailwind base;
+ @tailwind components;
+ @tailwind utilities;
 
 body {
     font-family: 'Figtree', 'Noto Sans SC', sans-serif;

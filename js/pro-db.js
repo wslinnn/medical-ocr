@@ -23,6 +23,58 @@ class MedicalDB {
         return await window.sqliteDB.getAll();
     }
 
+    async getCount() {
+        if (!window.sqliteDB) {
+            throw new Error('SQLite 不可用，请使用 Electron 环境运行');
+        }
+        return await window.sqliteDB.getCount();
+    }
+
+    async getStatusCounts() {
+        if (!window.sqliteDB) {
+            throw new Error('SQLite 不可用，请使用 Electron 环境运行');
+        }
+        return await window.sqliteDB.getStatusCounts();
+    }
+
+    async getTodayCount() {
+        if (!window.sqliteDB) {
+            throw new Error('SQLite 不可用，请使用 Electron 环境运行');
+        }
+        return await window.sqliteDB.getTodayCount();
+    }
+
+    async getPaginated(options) {
+        if (!window.sqliteDB) {
+            throw new Error('SQLite 不可用，请使用 Electron 环境运行');
+        }
+        return await window.sqliteDB.getPaginated(options);
+    }
+
+    // 对比审核专用分页查询（包含imageData）
+    async getPaginatedWithImage(options) {
+        if (!window.sqliteDB) {
+            throw new Error('SQLite 不可用，请使用 Electron 环境运行');
+        }
+        return await window.sqliteDB.getPaginatedWithImage(options);
+    }
+
+    // 获取所有记录的ID列表（用于去重）
+    async getAllIds() {
+        if (!window.sqliteDB) {
+            throw new Error('SQLite 不可用，请使用 Electron 环境运行');
+        }
+        return await window.sqliteDB.getAllIds();
+    }
+
+    // 查找重复记录（姓名+文件名相同）
+    async findDuplicates() {
+        if (!window.sqliteDB) {
+            throw new Error('SQLite 不可用，请使用 Electron 环境运行');
+        }
+        return await window.sqliteDB.findDuplicates();
+    }
+
     async save(record) {
         if (!window.sqliteDB) {
             throw new Error('SQLite 不可用，请使用 Electron 环境运行');
@@ -37,11 +89,40 @@ class MedicalDB {
         return await window.sqliteDB.saveAll(records);
     }
 
+    async update(id, updates) {
+        if (!window.sqliteDB) {
+            throw new Error('SQLite 不可用，请使用 Electron 环境运行');
+        }
+        return await window.sqliteDB.update(id, updates);
+    }
+
+    async updateStatus(id, status) {
+        if (!window.sqliteDB) {
+            throw new Error('SQLite 不可用，请使用 Electron 环境运行');
+        }
+        return await window.sqliteDB.updateStatus(id, status);
+    }
+
+    // 批量更新状态
+    async updateStatusMany(ids, status) {
+        if (!window.sqliteDB) {
+            throw new Error('SQLite 不可用，请使用 Electron 环境运行');
+        }
+        return await window.sqliteDB.updateStatusMany(ids, status);
+    }
+
     async delete(id) {
         if (!window.sqliteDB) {
             throw new Error('SQLite 不可用，请使用 Electron 环境运行');
         }
         return await window.sqliteDB.delete(id);
+    }
+
+    async deleteMany(ids) {
+        if (!window.sqliteDB) {
+            throw new Error('SQLite 不可用，请使用 Electron 环境运行');
+        }
+        return await window.sqliteDB.deleteMany(ids);
     }
 
     async clear() {

@@ -36,14 +36,17 @@ document.getElementById('btn-import-db').onclick = async () => {
 
         const filePath = result.filePaths[0];
 
+        // 显示加载状态
+        showLoading('正在导入数据...');
+
         // 导入数据库
         const importResult = await window.sqliteDB.importDb(filePath);
 
         if (importResult.success) {
-            // 重新加载数据
+            // 重新加载当前页数据（不分加载全部，避免内存问题）
             await db.init();
-            const records = await db.getAll();
-            state.records = records || [];
+            state.pagination.currentPage = 1;
+            await loadRecords();
             renderRecords();
             updateStatistics();
 
@@ -60,6 +63,8 @@ document.getElementById('btn-import-db').onclick = async () => {
     } catch (error) {
         console.error('导入数据库失败:', error);
         showToast('导入失败: ' + error.message, 'error');
+    } finally {
+        hideLoading();
     }
 
     // 关闭下拉菜单
@@ -69,15 +74,16 @@ document.getElementById('btn-import-db').onclick = async () => {
 // ============================================================================
 // CLEAR ALL DATA
 // ============================================================================
-document.getElementById('btn-clear-all').onclick = () => {
-    if (state.records.length === 0) {
+document.getElementById('btn-clear-all').onclick = async () => {
+    // 从数据库获取真实总数
+    const totalCount = await db.getCount();
+    if (totalCount === 0) {
         showToast('暂无数据可清空', 'warning');
         return;
     }
 
-    const count = state.records.length;
-    // Show custom confirmation modal
-    showClearConfirmModal(count);
+    // 显示确认对话框，使用真实总数
+    showClearConfirmModal(totalCount);
 };
 
 // ============================================================================
@@ -95,12 +101,67 @@ function showClearConfirmModal(count) {
     }
 }
 
+// ============================================================================
+// DELETE CONFIRMATION MODAL
+// ============================================================================
+let pendingDeleteCallback = null;
+
+function showDeleteConfirmModal(options, onConfirm) {
+    const { title, message, warning, count } = options;
+
+    // Update modal content
+    if (title) document.getElementById('delete-confirm-title').textContent = title;
+    if (message) document.getElementById('delete-confirm-message').textContent = message;
+    if (warning) document.getElementById('delete-confirm-warning').textContent = warning;
+
+    // Store callback
+    pendingDeleteCallback = onConfirm;
+
+    // Show modal
+    if (window.openModalWithFocus) {
+        openModalWithFocus('delete-confirm-modal');
+    } else {
+        document.getElementById('delete-confirm-modal').classList.add('active');
+    }
+}
+
+// Cancel button
+document.getElementById('btn-delete-cancel').onclick = () => {
+    if (window.closeModalWithFocus) {
+        closeModalWithFocus('delete-confirm-modal');
+    } else {
+        document.getElementById('delete-confirm-modal').classList.remove('active');
+    }
+    pendingDeleteCallback = null;
+};
+
+// Confirm delete button
+document.getElementById('btn-delete-confirm').onclick = async () => {
+    if (pendingDeleteCallback) {
+        try {
+            await pendingDeleteCallback();
+        } catch (e) {
+            console.error('删除失败:', e);
+            showToast('删除失败: ' + e.message, 'error');
+        }
+    }
+
+    if (window.closeModalWithFocus) {
+        closeModalWithFocus('delete-confirm-modal');
+    } else {
+        document.getElementById('delete-confirm-modal').classList.remove('active');
+    }
+    pendingDeleteCallback = null;
+};
+
 // Confirm delete button
 document.getElementById('btn-clear-confirm-delete').onclick = async () => {
-    const count = state.records.length;
+    // 从页面显示的count获取（对话框中显示的数量）
+    const countEl = document.getElementById('clear-record-count');
+    const count = countEl ? parseInt(countEl.textContent) || 0 : 0;
 
     try {
-        // Clear IndexedDB storage
+        // Clear database storage
         await db.clear();
 
         // Clear all records in memory
@@ -117,6 +178,10 @@ document.getElementById('btn-clear-confirm-delete').onclick = async () => {
 
         // Hide dropdown
         document.getElementById('data-menu-dropdown').classList.add('hidden');
+
+        // 更新统计（清空会影响所有数量）
+        updateTodayCount();
+        updateStatusCounts();
 
         showToast(`已清空 ${count} 条记录`, 'info');
     } catch (error) {

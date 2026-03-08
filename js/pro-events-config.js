@@ -61,18 +61,73 @@ if (saveTokenBtn) {
 // MODEL SELECTION CONFIG
 // ============================================================================
 const modelSelect = document.getElementById('settings-model');
+const customModelInput = document.getElementById('settings-model-custom');
+
+function updateModelInputVisibility() {
+    if (!modelSelect || !customModelInput) return;
+
+    if (modelSelect.value === 'custom') {
+        customModelInput.classList.remove('hidden');
+        customModelInput.focus();
+    } else {
+        customModelInput.classList.add('hidden');
+    }
+}
+
 if (modelSelect) {
     // Load saved model - state.model 已通过 initSettingsFromStore 加载
     if (state.model) {
-        modelSelect.value = state.model;
+        // Check if saved model exists in options
+        const options = Array.from(modelSelect.options).map(opt => opt.value);
+        if (options.includes(state.model)) {
+            modelSelect.value = state.model;
+        } else {
+            // Saved model is custom, show custom input
+            modelSelect.value = 'custom';
+            if (customModelInput) {
+                customModelInput.value = state.model;
+                customModelInput.classList.remove('hidden');
+            }
+        }
     }
 
-    // Save model on change
+    // Show/hide custom input on change
     modelSelect.onchange = async () => {
-        const selectedModel = modelSelect.value;
-        await saveModelToStore(selectedModel);
-        updateModelDisplay();
-        showToast('模型已切换为: ' + selectedModel);
+        updateModelInputVisibility();
+
+        if (modelSelect.value !== 'custom') {
+            const selectedModel = modelSelect.value;
+            await saveModelToStore(selectedModel);
+            updateModelDisplay();
+            showToast('模型已切换为: ' + selectedModel);
+        }
+    };
+}
+
+// Handle custom model input
+if (customModelInput) {
+    customModelInput.onblur = async () => {
+        const customModel = customModelInput.value.trim();
+        if (customModel) {
+            await saveModelToStore(customModel);
+            updateModelDisplay();
+            showToast('模型已切换为: ' + customModel);
+        }
+    };
+
+    // Also save on Enter key
+    customModelInput.onkeydown = async (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const customModel = customModelInput.value.trim();
+            if (customModel) {
+                await saveModelToStore(customModel);
+                updateModelDisplay();
+                showToast('模型已切换为: ' + customModel);
+                // Move focus out of input
+                customModelInput.blur();
+            }
+        }
     };
 }
 
@@ -95,11 +150,11 @@ function updateNetworkStatus() {
 
     if (navigator.onLine) {
         statusDot.className = 'w-2 h-2 rounded-full bg-green-500';
-        statusText.textContent = '已连接';
+        statusText.textContent = '网络已连接';
         statusText.className = 'text-sm text-green-600';
     } else {
         statusDot.className = 'w-2 h-2 rounded-full bg-red-500';
-        statusText.textContent = '已断开';
+        statusText.textContent = '网络已断开';
         statusText.className = 'text-sm text-red-600';
     }
 }

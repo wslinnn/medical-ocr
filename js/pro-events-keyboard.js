@@ -23,8 +23,8 @@ function toggleShortcuts() {
 }
 
 // Add F1 to open shortcuts
-document.addEventListener('keydown', (e) => {
-    // F1 - Open shortcuts sidebar
+document.addEventListener('keydown', async (e) => {
+    // F1 - Open/close shortcuts sidebar
     if (e.key === 'F1') {
         e.preventDefault();
         toggleShortcuts();
@@ -50,9 +50,17 @@ document.addEventListener('keydown', (e) => {
     }
 
     // ============================================================================
-    // ESC - Close Modals
+    // ESC - Close Modals and Shortcuts Sidebar
     // ============================================================================
     if (e.key === 'Escape') {
+        // First close shortcuts sidebar if open
+        const sidebar = document.getElementById('shortcuts-sidebar');
+        if (sidebar && !sidebar.classList.contains('translate-x-full')) {
+            e.preventDefault();
+            toggleShortcuts();
+            return;
+        }
+        // Then close any active modals
         document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
         return;
     }
@@ -119,28 +127,41 @@ document.addEventListener('keydown', (e) => {
             return;
         }
 
-        // Show detailed confirmation dialog
-        const message = `⚠️ 危险操作：删除记录\n\n` +
-                       `即将删除以下记录：\n` +
-                       `• 姓名: ${record.name}\n` +
-                       `• 诊断: ${record.diagnosis}\n` +
-                       `• 日期: ${new Date(record.createdAt).toLocaleString('zh-CN')}\n\n` +
-                       `此操作不可恢复！确定要删除吗？`;
+        const name = record.name || '未知';
+        showDeleteConfirmModal({
+            title: '确认删除',
+            message: `确定要删除 "${name}" 吗？`,
+            warning: '此操作不可恢复'
+        }, async () => {
+            // Delete from database
+            try {
+                await db.delete(String(record.id));
 
-        if (confirm(message)) {
-            const filtered = getFilteredRecordsForCompare();
-            state.records = state.records.filter(r => r.id !== record.id);
+                // 从内存中删除当前记录
+                state.records.splice(state.compareIndex, 1);
+                state.comparePagination.total--;
 
-            // Adjust compareIndex if needed
-            if (state.compareIndex >= filtered.length) {
-                state.compareIndex = Math.max(0, filtered.length - 1);
+                // 如果当前块已空且不是第一块，加载上一块
+                if (state.records.length === 0 && state.compareCurrentBlock > 0) {
+                    await loadPrevBlock();
+                } else if (state.compareIndex >= state.records.length) {
+                    // 如果索引超出范围，重置到最后一条
+                    state.compareIndex = Math.max(0, state.records.length - 1);
+                }
+
+                updateCompareView();
+                renderRecords();
+
+                // 更新统计（删除会影响今日数量和状态数量）
+                updateTodayCount();
+                updateStatusCounts();
+
+                showToast('记录已永久删除', 'warning');
+            } catch (e) {
+                console.error('删除记录失败:', e);
+                showToast('删除失败: ' + e.message, 'error');
             }
-
-            saveRecords();
-            updateCompareView();
-            
-            showToast('记录已永久删除', 'warning');
-        }
+        });
         return;
     }
 

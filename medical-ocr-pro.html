@@ -3,27 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>医疗病例 AI 识别系统 Pro</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <title>医疗病例 AI 识别系统 Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="css/pro-style.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#0891B2',
-                        primaryLight: '#22D3EE',
-                        success: '#22C55E',
-                        warning: '#F59E0B',
-                        danger: '#EF4444',
-                    },
-                }
-            }
-        }
-    </script>
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+    <link rel="stylesheet" href="css/css.css">
 </head>
 <body class="min-h-screen">
     <!-- Toast Container -->
@@ -215,7 +198,12 @@
                             <span id="queue-count" class="text-sm text-gray-500">0 个文件</span>
                         </div>
                         <div id="file-queue" class="flex-1 overflow-y-auto mb-4 min-h-0">
-                            <p class="text-gray-400 text-center py-8 text-sm">暂无文件</p>
+                            <div class="flex flex-col items-center justify-center h-full py-8">
+                                <svg class="w-12 h-12 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                </svg>
+                                <p class="text-gray-400 text-sm">暂无文件</p>
+                            </div>
                         </div>
                         <div id="queue-progress" class="hidden mb-4">
                             <div class="flex justify-between text-sm mb-1">
@@ -306,6 +294,12 @@
                                 <option value="reviewed">已审核</option>
                                 <option value="flagged">需复核</option>
                             </select>
+                            <button id="btn-export-reviewed" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 whitespace-nowrap">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                                导出已审核
+                            </button>
                             <button id="btn-export-all" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-cyan-700 flex items-center gap-2 whitespace-nowrap">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
@@ -388,24 +382,24 @@
 
                         <!-- Records Table -->
                         <div class="flex-1 overflow-hidden flex flex-col min-h-0">
-                            <div class="border border-gray-200 rounded-lg overflow-hidden flex-1 overflow-x-auto overflow-y-auto">
-                                <table class="w-full border-collapse">
+                            <div class="border border-gray-200 rounded-lg flex-1 overflow-auto">
+                                <table class="w-full border-collapse table-fixed">
                                     <thead class="bg-gray-50 sticky top-0 z-10">
                                         <tr class="border-b border-gray-200">
-                                            <th class="w-12 px-4 py-3 text-center">
+                                            <th class="w-10 px-2 py-3 text-center">
                                                 <input type="checkbox" id="select-all" class="record-checkbox w-4 h-4">
                                             </th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">姓名</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">穿刺病理</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">TNM分期</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">手术时间</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">术后病理</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">HER2状态</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ER状态</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ki67</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">解析时间</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">状态</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">操作</th>
+                                            <th class="w-8 max-w-8 px-2 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider truncate">姓名</th>
+                                            <th class="w-32 max-w-32 px-2 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider truncate">穿刺病理</th>
+                                            <th class="w-16 max-w-16 px-2 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider truncate">TNM分期</th>
+                                            <th class="w-16 max-w-16 px-2 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider truncate">手术时间</th>
+                                            <th class="w-32 max-w-32 px-2 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider truncate">术后病理</th>
+                                            <th class="w-16 max-w-16 px-2 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider truncate">HER2</th>
+                                            <th class="w-16 max-w-16 px-2 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider truncate">ER</th>
+                                            <th class="w-16 max-w-16 px-2 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider truncate">ki67</th>
+                                            <th class="w-16 max-w-16 px-2 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider truncate">解析时间</th>
+                                            <th class="w-8 max-w-8 px-2 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider truncate">状态</th>
+                                            <th class="w-8 max-w-8 px-2 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider truncate">操作</th>
                                         </tr>
                                     </thead>
                                     <tbody id="records-body" class="divide-y divide-gray-100">
@@ -425,7 +419,7 @@
                                     <button id="btn-page-first" class="px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 text-gray-600">首页</button>
                                     <button id="btn-page-prev" class="px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 text-gray-600">上一页</button>
                                     <span class="text-sm text-gray-600 px-2">
-                                        第 <input type="number" id="page-jump" class="w-14 px-2 py-1 border rounded-lg text-center text-sm" min="1" value="1"> / <span id="pagination-total-pages">1</span> 页
+                                        第 <input type="number" id="page-jump" class="w-14 px-1 py-1 border rounded-lg text-center text-sm" min="1" value="1"> / <span id="pagination-total-pages">1</span> 页
                                     </span>
                                     <button id="btn-page-next" class="px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 text-gray-600">下一页</button>
                                     <button id="btn-page-last" class="px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 text-gray-600">末页</button>
@@ -454,8 +448,8 @@
                         <span id="compare-status" class="status-badge pending">待审核</span>
                         <div class="flex items-center gap-2">
                             <span class="text-sm text-gray-500">筛选:</span>
-                            <button id="compare-filter-all" class="filter-btn active">全部</button>
-                            <button id="compare-filter-flagged" class="filter-btn">需审核</button>
+                            <button id="compare-filter-pending" class="filter-btn active">待审核</button>
+                            <button id="compare-filter-flagged" class="filter-btn">需复审</button>
                             <button id="compare-filter-reviewed" class="filter-btn">已审核</button>
                         </div>
                     </div>
@@ -602,6 +596,12 @@
                                                 </svg>
                                                 需复核
                                             </button>
+                                            <button id="btn-compare-delete" type="button" class="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center justify-center gap-2">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                                删除
+                                            </button>
                                         </div>
                                     </div>
                                 </form>
@@ -622,6 +622,35 @@
             <div class="flex justify-end gap-2 mt-6">
                 <button id="btn-edit-cancel" class="px-4 py-2 border rounded-lg">取消</button>
                 <button id="btn-edit-save" class="px-4 py-2 bg-primary text-white rounded-lg">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div id="delete-confirm-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 id="delete-confirm-title" class="text-lg font-semibold text-gray-900">确认删除</h3>
+                    <p id="delete-confirm-message" class="text-sm text-gray-500">此操作不可恢复</p>
+                </div>
+            </div>
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.932-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.932 3z"/>
+                    </svg>
+                    <p id="delete-confirm-warning" class="text-sm font-medium text-red-800">数据将被永久删除</p>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button id="btn-delete-cancel" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
+                <button id="btn-delete-confirm" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">确认删除</button>
             </div>
         </div>
     </div>
@@ -773,11 +802,6 @@
                 <!-- API Key Configuration -->
                 <div class="space-y-4">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964a6 6 0 016.828 0z"/>
-                            </svg>
-                        </div>
                         <div>
                             <h4 class="font-medium text-gray-900">API Key 配置</h4>
                             <p class="text-sm text-gray-500">用于连接阿里云百炼大模型服务</p>
@@ -800,12 +824,17 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">选择模型</label>
-                        <select id="settings-model" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="qwen3.5-plus" selected>qwen3.5-plus (推荐)</option>
-                            <option value="qwen3.5-flash">qwen3.5-flash</option>
-                            <option value="qwen3-vl-plus">qwen3-vl-plus</option>
-                            <option value="qwen3-vl-flash">qwen3-vl-flash</option>
-                        </select>
+                        <div class="flex gap-2">
+                            <select id="settings-model" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="qwen3.5-plus" selected>qwen3.5-plus</option>
+                                <option value="qwen3.5-flash">qwen3.5-flash</option>
+                                <option value="qwen3-vl-plus">qwen3-vl-plus</option>
+                                <option value="qwen3-vl-flash">qwen3-vl-flash</option>
+                                <option value="custom">自定义模型...</option>
+                            </select>
+                            <input type="text" id="settings-model-custom" placeholder="输入模型名称"
+                                class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hidden">
+                        </div>
                     </div>
 
                     <!-- Token Status -->

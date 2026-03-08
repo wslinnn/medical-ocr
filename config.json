@@ -1,22 +1,7 @@
 {
   "app": {
-    "name": "test",
+    "name": "医疗病例AI识别系统",
     "version": "1.0.0",
-    "title": "test"
-  },
-  "window": {
-    "width": 1200,
-    "height": 800,
-    "minWidth": 800,
-    "minHeight": 600
-  },
-  "urls": {
-    "development": "https://www.baidu.com",
-    "production": "medical-ocr.html"
-  },
-  "features": {
-    "devTools": false,
-    "contextMenu": true,
-    "webSecurity": false
+    "title": "医疗病例AI识别系统"
   }
 }

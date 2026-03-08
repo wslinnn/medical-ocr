@@ -50,6 +50,9 @@ function updateCompareView() {
     const contentView = document.getElementById('compare-content');
     const record = getCurrentCompareRecord();
 
+    // 更新按钮显示状态
+    updateCompareButtonsVisibility();
+
     if (!record) {
         if (noDataView) noDataView.classList.remove('hidden');
         if (contentView) contentView.classList.add('hidden');
@@ -61,8 +64,17 @@ function updateCompareView() {
     if (noDataView) noDataView.classList.add('hidden');
     if (contentView) contentView.classList.remove('hidden');
 
-    const filtered = getFilteredRecordsForCompare();
-    dom.compareIndex.textContent = `${state.compareIndex + 1} / ${filtered.length}`;
+    // 显示5个数字：块内位置、块内剩余（内存列表大小）、任务块数、总数
+    const pg = state.comparePagination;
+    const total = pg.total || state.totalRecords;
+    const blockSize = state.compareBlockSize;
+    const currentBlock = state.compareCurrentBlock;
+    const totalBlocks = Math.ceil(total / blockSize);
+    const currentPosition = state.compareIndex + 1;
+    const remainingInBlock = state.records.length;
+
+    // 格式：3/20，剩余 19，块 1/5，总数 85
+    dom.compareIndex.textContent = `${currentPosition}/${remainingInBlock}，页数 ${currentBlock + 1}/${totalBlocks}，总数 ${total}`;
 
     const statusBadges = {
         pending: '<span class="status-badge pending">待审核</span>',
@@ -156,7 +168,7 @@ function attachCompareEventListeners(record) {
             }
         };
 
-        const blurHandler = () => {
+        const blurHandler = async () => {
             const field = cell.dataset.field;
             // Trim whitespace and enforce maxlength
             let value = cell.textContent.trim();
@@ -164,8 +176,8 @@ function attachCompareEventListeners(record) {
                 value = value.substring(0, maxlength);
             }
             record[field] = value;
-            saveRecords();
-            renderRecords();
+            await saveRecords();
+            loadRecords().then(renderRecords);
         };
 
         // Prevent paste from exceeding maxlength

@@ -5,13 +5,13 @@
 
 document.getElementById('btn-page-first').onclick = () => {
     state.pagination.currentPage = 1;
-    renderRecords();
+    loadRecords().then(renderRecords);
 };
 
 document.getElementById('btn-page-prev').onclick = () => {
     if (state.pagination.currentPage > 1) {
         state.pagination.currentPage--;
-        renderRecords();
+        loadRecords().then(renderRecords);
     }
 };
 
@@ -19,7 +19,7 @@ document.getElementById('btn-page-next').onclick = () => {
     const totalPages = state.pagination.totalPages;
     if (totalPages > 0 && state.pagination.currentPage < totalPages) {
         state.pagination.currentPage++;
-        renderRecords();
+        loadRecords().then(renderRecords);
     }
 };
 
@@ -27,7 +27,7 @@ document.getElementById('btn-page-last').onclick = () => {
     const totalPages = state.pagination.totalPages;
     if (totalPages > 0) {
         state.pagination.currentPage = totalPages;
-        renderRecords();
+        loadRecords().then(renderRecords);
     }
 };
 
@@ -37,5 +37,5 @@ document.getElementById('page-jump').onchange = (e) => {
     if (page < 1) page = 1;
     if (page > totalPages) page = totalPages;
     state.pagination.currentPage = page;
-    renderRecords();
+    loadRecords().then(renderRecords);
 };

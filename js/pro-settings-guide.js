@@ -13,6 +13,24 @@ function openSettingsModal() {
         tokenInput.value = state.token;
     }
 
+    // Load current model into select
+    const modelSelect = document.getElementById('settings-model');
+    const customModelInput = document.getElementById('settings-model-custom');
+    if (modelSelect && state.model) {
+        const options = Array.from(modelSelect.options).map(opt => opt.value);
+        if (options.includes(state.model)) {
+            modelSelect.value = state.model;
+            if (customModelInput) customModelInput.classList.add('hidden');
+        } else {
+            // Saved model is custom
+            modelSelect.value = 'custom';
+            if (customModelInput) {
+                customModelInput.value = state.model;
+                customModelInput.classList.remove('hidden');
+            }
+        }
+    }
+
     // Update token status
     updateTokenStatus();
 

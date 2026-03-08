@@ -81,16 +81,19 @@ document.getElementById('btn-clear-queue').onclick = () => {
     const failed = state.fileQueue.filter(f => f.status === 'failed').length;
     const pending = state.fileQueue.filter(f => f.status === 'pending').length;
 
-    // Build message with counts
+    // Build message
     let message = `队列中共有 ${queueLength} 项:\n`;
     if (completed > 0) message += `- 已完成: ${completed} 项\n`;
     if (failed > 0) message += `- 失败: ${failed} 项\n`;
-    if (pending > 0) message += `- 待处理: ${pending} 项\n`;
-    message += '\n确定要清空所有项目吗？';
+    if (pending > 0) message += `- 待处理: ${pending} 项`;
 
-    if (confirm(message)) {
+    showDeleteConfirmModal({
+        title: '确认清空队列',
+        message: message,
+        warning: '所有项目将被从队列中移除'
+    }, () => {
         state.fileQueue = [];
         updateQueueUI();
         showToast('队列已清空');
-    }
+    });
 };

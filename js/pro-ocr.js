@@ -87,7 +87,7 @@ async function processQueue() {
             const parsed = parseQwenResponse(content); // JSON解析失败会抛出错误
 
             const record = {
-                id: generateUniqueId(),
+                id: 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
                 fileName: currentItem.file.name,
                 ...parsed,
                 originalText: content,
@@ -126,14 +126,26 @@ async function processQueue() {
             failCount++;
         }
 
-        saveRecords();
-        renderRecords();
-        
+        // 只保存记录，不加载全部数据
+        if (currentItem.record) {
+            await db.save(currentItem.record);
+        }
+
         updateQueueUI();
     }
 
     state.processing = false;
     disableDataModifyingOperations(false);
+
+    // 处理完成后统一刷新表格和统计
+    state.pagination.currentPage = 1;
+    await loadRecords();
+    renderRecords();
+
+    // 更新统计（今日识别 + 待审核）
+    updateTodayCount();
+    updateStatusCounts();
+
     showToast(`处理完成: 成功 ${successCount} 条${failCount > 0 ? `, 失败 ${failCount} 条` : ''}`);
 }
 

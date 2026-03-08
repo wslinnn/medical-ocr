@@ -5,7 +5,7 @@
 
 dom.searchInput.oninput = () => {
     state.pagination.currentPage = 1;
-    renderRecords();
+    loadRecords().then(renderRecords);
 };
 
 // ESC key to clear search
@@ -15,7 +15,7 @@ dom.searchInput.onkeydown = (e) => {
         if (dom.searchInput.value) {
             dom.searchInput.value = '';
             state.pagination.currentPage = 1;
-            renderRecords();
+            loadRecords().then(renderRecords);
             showToast('搜索已清除', 'info');
         }
     }
@@ -23,5 +23,5 @@ dom.searchInput.onkeydown = (e) => {
 
 dom.filterStatus.onchange = () => {
     state.pagination.currentPage = 1;
-    renderRecords();
+    loadRecords().then(renderRecords);
 };

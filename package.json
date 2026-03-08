@@ -18,11 +18,12 @@
     "cross-env": "^7.0.3",
     "electron": "^40.8.0",
     "electron-builder": "^26.0.12",
+    "tailwindcss": "^3.4.19",
     "wait-on": "^8.0.3"
   },
   "build": {
     "appId": "com.medical.ai.pro",
-    "productName": "test",
+    "productName": "医疗病例AI识别系统",
     "asar": true,
     "compression": "maximum",
     "files": [
@@ -32,9 +33,19 @@
       "css/**/*",
       "js/**/*",
       "config.json",
-      "assets/**/*",
-      "node_modules/**/*"
+      "assets/**/*"
     ],
+    "extraMetadata": {
+      "main": "main-pro.js"
+    },
+    "asarUnpack": [
+      "node_modules/sql.js/**/*"
+    ],
+    "npmRebuild": false,
+    "npmArgs": [
+      "--ignore-scripts"
+    ],
+    "removePackageScripts": true,
     "extraResources": [
       {
         "from": "node_modules/sql.js/dist/sql-wasm.wasm",
@@ -70,8 +81,14 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "shortcutName": "医疗病例AI识别系统",
+      "uninstallDisplayName": "医疗病例AI识别系统",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "differentialPackage": false
     }
   },
   "dependencies": {

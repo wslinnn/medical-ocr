@@ -7,40 +7,39 @@
 // STATE
 // ============================================================================
 
-// ============================================================================
-// UNIQUE ID GENERATOR
-// ============================================================================
-// Use a combination of timestamp and counter to ensure uniqueness
-let idCounter = 0;
-let lastTimestamp = 0;
-
-function generateUniqueId() {
-    const timestamp = Date.now();
-    if (timestamp !== lastTimestamp) {
-        lastTimestamp = timestamp;
-        idCounter = 0;
-    }
-    return timestamp * 10000 + (++idCounter);
-}
-
 const state = {
     token: '', // 异步加载，从 electron-store
     model: 'qwen3.5-plus', // 异步加载，从 electron-store
     customPrompt: '', // 异步加载，从 electron-store
-    records: [], // 初始为空，从 IndexedDB 加载
+    records: [], // 当前页的记录
+    totalRecords: 0, // 记录总数
     fileQueue: [],
     compareIndex: -1,
     imageZoom: 100,
     imageRotation: 0,
     imageFit: 'contain',
     processing: false,
-    compareFilter: 'all', // all, flagged, reviewed
-    // Pagination
+    compareFilter: 'pending', // pending, flagged, reviewed
+    // 任务块模式（每块20条）
+    compareBlockSize: 20,
+    compareCurrentBlock: 0, // 当前块索引（从0开始）
+    // Pagination (文件处理页面)
     pagination: {
         currentPage: 1,
         pageSize: 20,
         get totalPages() {
-            return Math.ceil(state.records.length / this.pageSize);
+            return Math.ceil(state.totalRecords / this.pageSize);
+        }
+    },
+    // 对比审核分页（流式加载）
+    comparePagination: {
+        currentPage: 1,
+        pageSize: 20, // 每页加载20条
+        total: 0,
+        isLoading: false, // 是否正在加载
+        hasMore: true, // 是否还有更多数据
+        get totalPages() {
+            return Math.ceil(this.total / this.pageSize);
         }
     },
     // Image drag state
@@ -76,13 +75,29 @@ async function initSettingsFromStore() {
 }
 
 // ============================================================================
-// PERSISTENCE (IndexedDB)
+// PERSISTENCE (SQLite)
 // ============================================================================
-async function saveRecords() {
+async function saveRecords(record) {
     try {
-        await db.saveAll(state.records);
+        if (record) {
+            // 保存单条记录
+            await db.save(record);
+        } else {
+            // 保存内存中的所有记录（OCR完成后调用）
+            if (state.records.length > 0) {
+                // 只获取所有已有记录的ID，避免加载全部数据
+                const allIds = await db.getAllIds();
+                const existingIds = new Set(allIds);
+                // 找出内存中新增的记录
+                const newRecords = state.records.filter(r => !existingIds.has(r.id));
+                // 批量保存新增记录
+                if (newRecords.length > 0) {
+                    await db.saveAll(newRecords);
+                }
+            }
+        }
     } catch (e) {
-        console.error('保存数据到 IndexedDB 失败:', e);
+        console.error('保存数据到数据库失败:', e);
         showToast('数据保存失败', 'error');
     }
 }
@@ -90,8 +105,25 @@ async function saveRecords() {
 async function loadRecords() {
     try {
         await db.init();
-        const records = await db.getAll();
-        state.records = records || [];
+        const searchTerm = dom.searchInput ? dom.searchInput.value.trim() : '';
+        const statusFilter = dom.filterStatus ? dom.filterStatus.value : '';
+
+        // 使用分页查询
+        const result = await db.getPaginated({
+            page: state.pagination.currentPage,
+            pageSize: state.pagination.pageSize,
+            search: searchTerm,
+            status: statusFilter
+        });
+
+        state.records = result.records || [];
+        state.totalRecords = result.total || 0;
+
+        // 如果当前页超出范围，重置到第一页
+        if (state.pagination.currentPage > state.pagination.totalPages && state.pagination.totalPages > 0) {
+            state.pagination.currentPage = 1;
+            await loadRecords();
+        }
     } catch (e) {
         console.error('初始化数据库失败:', e);
         showToast('数据库初始化失败', 'error');
@@ -123,6 +155,50 @@ const dom = {
 
 // ============================================================================
 // UTILITIES
+// ============================================================================
+
+// HTML 转义函数，防止 XSS 攻击
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = String(str);
+    return div.innerHTML;
+}
+
+// ============================================================================
+// LOADING STATE
+// ============================================================================
+let loadingOverlay = null;
+
+function showLoading(message = '处理中...') {
+    // Remove existing overlay if any
+    hideLoading();
+
+    // Create loading overlay
+    loadingOverlay = document.createElement('div');
+    loadingOverlay.id = 'loading-overlay';
+    loadingOverlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[200]';
+    loadingOverlay.innerHTML = `
+        <div class="bg-white rounded-xl shadow-2xl p-6 flex items-center gap-4">
+            <svg class="animate-spin w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-gray-700 font-medium">${message}</span>
+        </div>
+    `;
+    document.body.appendChild(loadingOverlay);
+}
+
+function hideLoading() {
+    if (loadingOverlay) {
+        loadingOverlay.remove();
+        loadingOverlay = null;
+    }
+}
+
+// ============================================================================
+// TOAST NOTIFICATIONS
 // ============================================================================
 function showToast(message, type = 'success') {
     const container = document.getElementById('toast-container');

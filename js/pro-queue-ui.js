@@ -36,9 +36,6 @@ function updateQueueUI() {
     if (state.fileQueue.length === 0) {
         dom.fileQueue.innerHTML = `
             <div class="text-center py-8">
-                <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
                 <p class="text-gray-400">队列中暂无文件</p>
                 <p class="text-sm text-gray-400 mt-1">点击上方按钮选择文件或拖拽文件到此处</p>
             </div>
@@ -64,7 +61,7 @@ function updateQueueUI() {
         // Action buttons based on status
         let actionButton = '';
         if (item.status === 'pending') {
-            actionButton = `<button class="text-red-500 hover:text-red-700 p-1" onclick="removeFromQueue(${item.id})" title="移除">
+            actionButton = `<button class="text-red-500 hover:text-red-700 p-1" onclick="removeFromQueue('${escapeHtml(item.id)}')" title="移除">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -76,7 +73,7 @@ function updateQueueUI() {
                 </svg>
             </button>`;
         } else if (item.status === 'failed') {
-            actionButton = `<button class="text-blue-500 hover:text-blue-700 p-1" onclick="retryItem(${item.id})" title="重试">
+            actionButton = `<button class="text-blue-500 hover:text-blue-700 p-1" onclick="retryItem('${escapeHtml(item.id)}')" title="重试">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
@@ -88,13 +85,13 @@ function updateQueueUI() {
         const processingClass = isProcessing ? 'ring-2 ring-blue-500 bg-blue-50' : '';
 
         return `
-            <div class="queue-item ${statusClass} ${processingClass}">
+            <div class="queue-item ${statusClass} ${processingClass}" onclick="previewQueueImage('${escapeHtml(item.id)}')" title="点击预览原始图片" style="cursor: pointer;">
                 ${thumbnail}
                 <div class="flex-1 min-w-0">
-                    <div class="truncate">${item.file.name}</div>
+                    <div class="truncate">${escapeHtml(item.file.name)}</div>
                     ${item.status === 'failed' ? `
-                        <div class="text-xs text-red-500 font-medium">${item.error || '识别失败'}</div>
-                        ${item.errorDetails ? `<div class="text-xs text-gray-500 mt-0.5">${item.errorDetails}</div>` : ''}
+                        <div class="text-xs text-red-500 font-medium">${escapeHtml(item.error) || '识别失败'}</div>
+                        ${item.errorDetails ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(item.errorDetails)}</div>` : ''}
                     ` : ''}
                     ${isProcessing ? `<div class="text-xs text-blue-600 animate-pulse">正在识别...</div>` : ''}
                 </div>
@@ -104,3 +101,53 @@ function updateQueueUI() {
         `;
     }).join('');
 }
+
+// Preview image from queue
+window.previewQueueImage = function(itemId) {
+    const item = state.fileQueue.find(f => f.id === itemId);
+    if (!item || !item.file) return;
+
+    // Read file as data URL
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        // Create or show modal
+        let modal = document.getElementById('queue-preview-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'queue-preview-modal';
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 90vw; max-height: 90vh; width: auto;">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">图片预览</h3>
+                        <button onclick="closeQueuePreview()" class="p-1 hover:bg-gray-100 rounded">
+                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="flex justify-center">
+                        <img id="queue-preview-image" class="max-w-full max-h-[70vh] object-contain rounded-lg">
+                    </div>
+                    <div class="mt-4 text-center text-sm text-gray-500" id="queue-preview-filename"></div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // Close on overlay click
+            modal.onclick = function(e) {
+                if (e.target === modal) closeQueuePreview();
+            };
+        }
+
+        document.getElementById('queue-preview-image').src = e.target.result;
+        document.getElementById('queue-preview-filename').textContent = item.file.name;
+        modal.classList.add('active');
+    };
+    reader.readAsDataURL(item.file);
+};
+
+window.closeQueuePreview = function() {
+    const modal = document.getElementById('queue-preview-modal');
+    if (modal) modal.classList.remove('active');
+};

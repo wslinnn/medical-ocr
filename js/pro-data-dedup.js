@@ -63,12 +63,7 @@ function calculateSimilarity(str1, str2) {
 // ============================================================================
 // FIND DUPLICATES
 // ============================================================================
-document.getElementById('btn-dedup-check').onclick = () => {
-    if (state.records.length < 2) {
-        showToast('记录少于2条，无需查重', 'info');
-        return;
-    }
-
+document.getElementById('btn-dedup-check').onclick = async () => {
     // Show loading state
     const btn = document.getElementById('btn-dedup-check');
     const originalText = btn.innerHTML;
@@ -81,68 +76,53 @@ document.getElementById('btn-dedup-check').onclick = () => {
         正在查重...
     `;
 
-    // Use setTimeout to allow UI to update
-    setTimeout(() => {
-        try {
-            performDeduplication();
-        } finally {
-            // Restore button state
-            btn.disabled = false;
-            btn.innerHTML = originalText;
+    try {
+        // 从数据库查询重复记录（姓名+文件名相同）
+        const duplicateRecords = await db.findDuplicates();
+
+        if (!duplicateRecords || duplicateRecords.length === 0) {
+            showToast('未发现重复记录', 'success');
+            return;
         }
-    }, 50);
-};
 
-function performDeduplication() {
-    const processedRecords = new Set();
-    duplicateGroups = [];
-
-    for (let i = 0; i < state.records.length; i++) {
-        if (processedRecords.has(i)) continue;
-
-        const record1 = state.records[i];
-        const group = [record1];
-        processedRecords.add(i);
-
-        // Compare with all other records
-        for (let j = i + 1; j < state.records.length; j++) {
-            if (processedRecords.has(j)) continue;
-
-            const record2 = state.records[j];
-
-            // Deduplication strategy: Filename + Name
-            // Check if both filename and name match (exact match after normalization)
-            const fileNameMatch = normalizeText(record1.fileName) === normalizeText(record2.fileName);
-            const nameMatch = normalizeText(record1.name) === normalizeText(record2.name);
-
-            // Records are considered duplicates if both filename and name match
-            const isDuplicate = fileNameMatch && nameMatch;
-
-            if (isDuplicate) {
-                group.push(record2);
-                processedRecords.add(j);
+        // 按姓名+文件名分组
+        const groupMap = new Map();
+        duplicateRecords.forEach(record => {
+            const key = `${(record.name || '').toLowerCase()}|${(record.fileName || '').toLowerCase()}`;
+            if (!groupMap.has(key)) {
+                groupMap.set(key, []);
             }
+            groupMap.get(key).push(record);
+        });
+
+        // 转换为数组并按时间排序（最早的在前）
+        duplicateGroups = Array.from(groupMap.values())
+            .filter(group => group.length > 1)
+            .map(group => {
+                group.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                return group;
+            });
+
+        if (duplicateGroups.length === 0) {
+            showToast('未发现重复记录', 'success');
+            return;
         }
 
-        if (group.length > 1) {
-            // Sort with oldest first (ascending order) - oldest is the original record
-            group.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-            duplicateGroups.push(group);
-        }
+        renderDuplicateGroups();
+
+        const totalCount = duplicateGroups.reduce((sum, group) => sum + group.length, 0);
+        document.getElementById('dedup-group-count').textContent = duplicateGroups.length;
+        document.getElementById('dedup-total-count').textContent = totalCount;
+        document.getElementById('dedup-summary').classList.remove('hidden');
+        document.getElementById('dedup-modal').classList.add('active');
+    } catch (e) {
+        console.error('查重失败:', e);
+        showToast('查重失败: ' + e.message, 'error');
+    } finally {
+        // Restore button state
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     }
-
-    if (duplicateGroups.length === 0) {
-        showToast('未发现重复记录', 'success');
-        return;
-    }
-
-    renderDuplicateGroups();
-
-    const totalCount = duplicateGroups.reduce((sum, group) => sum + group.length, 0);
-    document.getElementById('dedup-group-count').textContent = duplicateGroups.length;
-    document.getElementById('dedup-total-count').textContent = totalCount;
-    document.getElementById('dedup-summary').classList.remove('hidden');
-    document.getElementById('dedup-modal').classList.add('active');
 };
 
 // ============================================================================
@@ -203,17 +183,17 @@ window.removeDuplicateRecord = async function(groupIndex, recordIndex) {
     const group = duplicateGroups[groupIndex];
     const record = group[recordIndex];
 
-    // Delete from IndexedDB first
+    // Delete from database first
     try {
-        await db.delete(record.id);
+        await db.delete(String(record.id));
     } catch (e) {
         console.error('删除记录失败:', e);
         showToast('删除失败', 'error');
         return;
     }
 
-    // Remove from memory
-    state.records = state.records.filter(r => r.id !== record.id);
+    // Remove from memory - compare as strings to handle both types
+    state.records = state.records.filter(r => String(r.id) !== String(record.id));
     group.splice(recordIndex, 1);
 
     if (group.length === 1) {
@@ -221,7 +201,10 @@ window.removeDuplicateRecord = async function(groupIndex, recordIndex) {
     }
 
     renderRecords();
-    
+
+    // 更新统计（删除会影响今日数量和状态数量）
+    updateTodayCount();
+    updateStatusCounts();
 
     if (duplicateGroups.length === 0) {
         document.getElementById('dedup-modal').classList.remove('active');
@@ -245,12 +228,12 @@ document.getElementById('btn-dedup-keep-newer').onclick = async () => {
     // Collect IDs to delete (all except the last/newest in each group)
     duplicateGroups.forEach(group => {
         for (let i = 0; i < group.length - 1; i++) {
-            idsToDelete.push(group[i].id);
+            idsToDelete.push(String(group[i].id));
             removedCount++;
         }
     });
 
-    // Delete from IndexedDB
+    // Delete from database
     try {
         for (const id of idsToDelete) {
             await db.delete(id);
@@ -261,10 +244,14 @@ document.getElementById('btn-dedup-keep-newer').onclick = async () => {
         return;
     }
 
-    // Update memory
-    state.records = state.records.filter(r => !idsToDelete.includes(r.id));
+    // Update memory - compare as strings to handle both types
+    state.records = state.records.filter(r => !idsToDelete.includes(String(r.id)));
     renderRecords();
-    
+
+    // 更新统计（删除会影响今日数量和状态数量）
+    updateTodayCount();
+    updateStatusCounts();
+
     document.getElementById('dedup-modal').classList.remove('active');
     showToast(`已删除 ${removedCount} 条重复记录，保留最新的记录`);
 };
@@ -277,12 +264,12 @@ document.getElementById('btn-dedup-keep-older').onclick = async () => {
     // Collect IDs to delete (all except the first/oldest in each group)
     duplicateGroups.forEach(group => {
         for (let i = 1; i < group.length; i++) {
-            idsToDelete.push(group[i].id);
+            idsToDelete.push(String(group[i].id));
             removedCount++;
         }
     });
 
-    // Delete from IndexedDB
+    // Delete from database
     try {
         for (const id of idsToDelete) {
             await db.delete(id);
@@ -293,10 +280,14 @@ document.getElementById('btn-dedup-keep-older').onclick = async () => {
         return;
     }
 
-    // Update memory
-    state.records = state.records.filter(r => !idsToDelete.includes(r.id));
+    // Update memory - compare as strings to handle both types
+    state.records = state.records.filter(r => !idsToDelete.includes(String(r.id)));
     renderRecords();
-    
+
+    // 更新统计（删除会影响今日数量和状态数量）
+    updateTodayCount();
+    updateStatusCounts();
+
     document.getElementById('dedup-modal').classList.remove('active');
     showToast(`已删除 ${removedCount} 条重复记录，保留最旧的记录`);
 };

@@ -8,41 +8,22 @@
 // ============================================================================
 function renderRecords() {
     const tbody = dom.recordsBody;
-    const statusFilter = dom.filterStatus ? dom.filterStatus.value : '';
-
-    let filteredRecords = state.records;
-
-    // Sort by createdAt descending by default
-    filteredRecords = [...filteredRecords].sort((a, b) =>
-        new Date(b.createdAt) - new Date(a.createdAt)
-    );
-
-    if (statusFilter) {
-        filteredRecords = filteredRecords.filter(r => r.status === statusFilter);
-    }
-
-    const searchTerm = dom.searchInput ? dom.searchInput.value.toLowerCase() : '';
-    if (searchTerm) {
-        filteredRecords = filteredRecords.filter(r =>
-            (r.name && r.name.toLowerCase().includes(searchTerm))
-        );
-    }
-
-    if (state.pagination.currentPage > Math.ceil(filteredRecords.length / state.pagination.pageSize)) {
-        state.pagination.currentPage = 1;
-    }
+    const filteredRecords = state.records;
 
     // Show appropriate empty state message
     if (filteredRecords.length === 0) {
+        const statusFilter = dom.filterStatus ? dom.filterStatus.value : '';
+        const searchTerm = dom.searchInput ? dom.searchInput.value : '';
+
         let emptyMessage = '暂无记录';
         let emptyHint = '';
 
-        if (state.records.length === 0) {
+        if (state.totalRecords === 0) {
             emptyMessage = '暂无记录';
             emptyHint = '请先上传文件进行识别';
         } else if (searchTerm) {
             emptyMessage = '未找到匹配的记录';
-            emptyHint = `搜索关键词: "${dom.searchInput.value}"`;
+            emptyHint = `搜索关键词: "${searchTerm}"`;
         } else if (statusFilter) {
             const statusNames = { pending: '待审核', reviewed: '已审核', flagged: '需复核' };
             emptyMessage = `没有${statusNames[statusFilter]}的记录`;
@@ -66,10 +47,7 @@ function renderRecords() {
         return;
     }
 
-    const totalPages = Math.ceil(filteredRecords.length / state.pagination.pageSize);
-    const start = (state.pagination.currentPage - 1) * state.pagination.pageSize;
-    const end = Math.min(start + state.pagination.pageSize, filteredRecords.length);
-    const paginatedRecords = filteredRecords.slice(start, end);
+    const paginatedRecords = filteredRecords;
 
     const statusBadges = {
         pending: '<span class="status-badge pending">待审核</span>',
@@ -90,31 +68,31 @@ function renderRecords() {
 
         return `
         <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0">
-            <td class="px-4 py-3 text-center"><input type="checkbox" class="record-checkbox w-4 h-4" data-id="${r.id}"></td>
-            <td class="px-4 py-3 text-gray-600 font-medium">${r.name || '-'}</td>
-            <td class="px-4 py-3 text-gray-600 text-sm max-w-[120px] truncate" title="${r.biopsyPathology || ''}">${r.biopsyPathology || '-'}</td>
-            <td class="px-4 py-3 text-gray-600 text-sm">${r.tnmStage || '-'}</td>
-            <td class="px-4 py-3 text-gray-600 text-sm">${r.surgeryTime || '-'}</td>
-            <td class="px-4 py-3 text-gray-600 text-sm max-w-[150px] truncate" title="${r.postopPathology || ''}">${r.postopPathology || '-'}</td>
-            <td class="px-4 py-3 text-gray-600 text-sm">${r.her2Status || '-'}</td>
-            <td class="px-4 py-3 text-gray-600 text-sm">${r.erStatus || '-'}</td>
-            <td class="px-4 py-3 text-gray-600 text-sm">${r.ki67 || '-'}</td>
-            <td class="px-4 py-3 text-gray-500 text-xs">${timeStr}</td>
-            <td class="px-4 py-3">${statusBadges[r.status]}</td>
-            <td class="px-4 py-3">
-                <div class="flex gap-2">
-                    <button class="text-primary hover:text-cyan-700 font-medium" onclick="viewRecord('${r.id}')">查看</button>
+            <td class="px-2 py-3 text-center"><input type="checkbox" class="record-checkbox w-4 h-4" data-id="${escapeHtml(r.id)}"></td>
+            <td class="px-2 py-3 text-gray-600 font-medium truncate" title="${escapeHtml(r.name)}">${escapeHtml(r.name) || '-'}</td>
+            <td class="px-2 py-3 text-gray-600 text-sm truncate" title="${escapeHtml(r.biopsyPathology)}">${escapeHtml(r.biopsyPathology) || '-'}</td>
+            <td class="px-2 py-3 text-gray-600 text-sm truncate" title="${escapeHtml(r.tnmStage)}">${escapeHtml(r.tnmStage) || '-'}</td>
+            <td class="px-2 py-3 text-gray-600 text-sm truncate" title="${escapeHtml(r.surgeryTime)}">${escapeHtml(r.surgeryTime) || '-'}</td>
+            <td class="px-2 py-3 text-gray-600 text-sm truncate" title="${escapeHtml(r.postopPathology)}">${escapeHtml(r.postopPathology) || '-'}</td>
+            <td class="px-2 py-3 text-gray-600 text-sm truncate" title="${escapeHtml(r.her2Status)}">${escapeHtml(r.her2Status) || '-'}</td>
+            <td class="px-2 py-3 text-gray-600 text-sm truncate" title="${escapeHtml(r.erStatus)}">${escapeHtml(r.erStatus) || '-'}</td>
+            <td class="px-2 py-3 text-gray-600 text-sm truncate" title="${escapeHtml(r.ki67)}">${escapeHtml(r.ki67) || '-'}</td>
+            <td class="px-2 py-3 text-gray-500 text-xs truncate" title="${escapeHtml(timeStr)}">${escapeHtml(timeStr)}</td>
+            <td class="px-2 py-3">${statusBadges[r.status]}</td>
+            <td class="px-2 py-3">
+                <div class="flex gap-1">
+                    <button class="text-primary hover:text-cyan-700 font-medium text-sm" onclick="viewRecord('${escapeHtml(r.id)}')">查看</button>
                 </div>
             </td>
         </tr>
         `;
     }).join('');
 
-    tbody.querySelectorAll('.record-checkbox').forEach(cb => {
+    tbody.querySelectorAll('.record-checkbox:not(#select-all)').forEach(cb => {
         cb.onchange = updateSelectedCount;
     });
 
-    updatePaginationUI(filteredRecords.length);
+    updatePaginationUI(state.totalRecords);
 }
 
 // ============================================================================
@@ -150,8 +128,8 @@ function updatePaginationUI(totalRecords) {
 }
 
 function updateSelectedCount() {
-    const allCheckboxes = document.querySelectorAll('.record-checkbox');
-    const checkedBoxes = document.querySelectorAll('.record-checkbox:checked');
+    const allCheckboxes = document.querySelectorAll('.record-checkbox:not(#select-all)');
+    const checkedBoxes = document.querySelectorAll('.record-checkbox:checked:not(#select-all)');
     const selectedCount = checkedBoxes.length;
     const totalCount = allCheckboxes.length;
 

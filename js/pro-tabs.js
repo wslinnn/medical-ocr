@@ -20,35 +20,55 @@ async function switchTab(tabName) {
 
     // Records are now displayed in upload view (right panel)
     if (tabName === 'upload') {
-        updateStatistics();
+        // 使用分页查询，加载当前页数据
+        state.pagination.currentPage = 1;
+        await loadRecords();
         renderRecords();
+        updateStatistics();
     }
     if (tabName === 'compare') {
-        // Refresh data when switching to compare review page
+        // 刷新数据，切换到对比审核页面
         try {
-            // Ensure database is initialized
+            // 确保数据库已初始化
             await db.init();
-            // Reload records from database to get latest data
-            const records = await db.getAll();
-            state.records = records || [];
+
+            // 重置任务块索引
+            state.compareCurrentBlock = 0;
+            state.compareIndex = 0;
+
+            // 使用任务块模式查询，每块20条
+            // pending: 待审核, flagged: 需复审, reviewed: 已审核
+            const statusFilter = state.compareFilter || 'pending';
+            const blockSize = state.compareBlockSize;
+
+            const result = await db.getPaginatedWithImage({
+                page: 1,
+                pageSize: blockSize,
+                search: '',
+                status: statusFilter
+            });
+
+            // 更新分页状态
+            state.comparePagination.total = result.total || 0;
+            state.comparePagination.hasMore = result.records.length < result.total;
+
+            state.records = result.records || [];
+            state.totalRecords = result.total || 0;
 
             renderRecords();
             updateStatistics();
 
-            // If viewing a specific record, find its index
+            // 如果查看指定记录，找到其索引
             if (state.viewRecordId) {
-                // Compare as strings to handle both string and number IDs
                 const viewId = String(state.viewRecordId);
                 const index = state.records.findIndex(r => String(r.id) === viewId);
                 if (index >= 0) {
                     state.compareIndex = index;
                 } else {
-                    // Record not found, reset to first record
                     state.compareIndex = 0;
                 }
                 state.viewRecordId = null;
             } else if (state.records.length > 0) {
-                // If no specific record requested and index is invalid, set to first record
                 if (state.compareIndex < 0 || state.compareIndex >= state.records.length) {
                     state.compareIndex = 0;
                 }
@@ -64,7 +84,7 @@ async function switchTab(tabName) {
 
 // Global viewRecord function
 window.viewRecord = function(id) {
-    state.compareFilter = 'all';
+    state.compareFilter = 'pending'; // Default to pending filter
     state.viewRecordId = String(id); // Store the ID as string to find after data loads
     switchTab('compare');
 };
