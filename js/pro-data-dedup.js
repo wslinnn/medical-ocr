@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 数据去重模块
- * Medical OCR Pro - Data Deduplication Module
+ * 医疗病例 AI 识别系统 Pro - 数据去重模块
+ * Medical AI Pro - Data Deduplication Module
  */
 
 // ============================================================================
@@ -221,7 +221,7 @@ window.removeDuplicateRecord = async function(groupIndex, recordIndex) {
     }
 
     renderRecords();
-    updateRecentResults();
+    
 
     if (duplicateGroups.length === 0) {
         document.getElementById('dedup-modal').classList.remove('active');
@@ -264,7 +264,7 @@ document.getElementById('btn-dedup-keep-newer').onclick = async () => {
     // Update memory
     state.records = state.records.filter(r => !idsToDelete.includes(r.id));
     renderRecords();
-    updateRecentResults();
+    
     document.getElementById('dedup-modal').classList.remove('active');
     showToast(`已删除 ${removedCount} 条重复记录，保留最新的记录`);
 };
@@ -296,7 +296,7 @@ document.getElementById('btn-dedup-keep-older').onclick = async () => {
     // Update memory
     state.records = state.records.filter(r => !idsToDelete.includes(r.id));
     renderRecords();
-    updateRecentResults();
+    
     document.getElementById('dedup-modal').classList.remove('active');
     showToast(`已删除 ${removedCount} 条重复记录，保留最旧的记录`);
 };

@@ -1,7 +1,26 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 配置事件处理
- * Medical OCR Pro - Configuration Event Handlers
+ * 医疗病例 AI 识别系统 Pro - 配置事件处理
+ * Medical AI Pro - Configuration Event Handlers
  */
+
+// ============================================================================
+// HELPER: Save settings to electron-store
+// ============================================================================
+async function saveTokenToStore(token) {
+    if (!window.electronStore) {
+        throw new Error('electron-store 不可用，请使用 Electron 环境运行');
+    }
+    state.token = token;
+    await window.electronStore.set('token', token);
+}
+
+async function saveModelToStore(model) {
+    if (!window.electronStore) {
+        throw new Error('electron-store 不可用，请使用 Electron 环境运行');
+    }
+    state.model = model;
+    await window.electronStore.set('model', model);
+}
 
 // ============================================================================
 // TOKEN CONFIG (Legacy - kept for compatibility with token-card)
@@ -11,12 +30,11 @@
 if (dom.apiToken) {
     dom.apiToken.value = state.token;
 
-    dom.apiToken.onblur = () => {
+    dom.apiToken.onblur = async () => {
         const newToken = dom.apiToken.value.trim();
         if (newToken !== state.token) {
-            state.token = newToken;
-            localStorage.setItem('aistudio_token', newToken);
-            showToast('Token 已保存');
+            await saveTokenToStore(newToken);
+            showToast('API Key 已保存');
             updateNetworkStatus();
         }
     };
@@ -25,16 +43,15 @@ if (dom.apiToken) {
 // Legacy save-token button (if exists)
 const saveTokenBtn = document.getElementById('save-token');
 if (saveTokenBtn) {
-    saveTokenBtn.onclick = () => {
+    saveTokenBtn.onclick = async () => {
         if (dom.apiToken) {
             const newToken = dom.apiToken.value.trim();
             if (newToken) {
-                state.token = newToken;
-                localStorage.setItem('aistudio_token', newToken);
-                showToast('Token 已保存');
+                await saveTokenToStore(newToken);
+                showToast('API Key 已保存');
                 updateNetworkStatus();
             } else {
-                showToast('请输入 Token', 'warning');
+                showToast('请输入 API Key', 'warning');
             }
         }
     };
@@ -45,18 +62,15 @@ if (saveTokenBtn) {
 // ============================================================================
 const modelSelect = document.getElementById('settings-model');
 if (modelSelect) {
-    // Load saved model
-    const savedModel = localStorage.getItem('ocr_model');
-    if (savedModel) {
-        modelSelect.value = savedModel;
-        state.model = savedModel;
+    // Load saved model - state.model 已通过 initSettingsFromStore 加载
+    if (state.model) {
+        modelSelect.value = state.model;
     }
 
     // Save model on change
-    modelSelect.onchange = () => {
+    modelSelect.onchange = async () => {
         const selectedModel = modelSelect.value;
-        localStorage.setItem('ocr_model', selectedModel);
-        state.model = selectedModel;
+        await saveModelToStore(selectedModel);
         updateModelDisplay();
         showToast('模型已切换为: ' + selectedModel);
     };

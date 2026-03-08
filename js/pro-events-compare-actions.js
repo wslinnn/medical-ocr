@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 对比视图操作按钮事件
- * Medical OCR Pro - Compare View Action Button Events
+ * 医疗病例 AI 识别系统 Pro - 对比视图操作按钮事件
+ * Medical AI Pro - Compare View Action Button Events
  */
 
 // Helper to check if record would be removed from current filter after status change

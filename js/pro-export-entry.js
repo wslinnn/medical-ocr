@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 导出入口模块
- * Medical OCR Pro - Export Entry Points Module
+ * 医疗病例 AI 识别系统 Pro - 导出入口模块
+ * Medical AI Pro - Export Entry Points Module
  */
 
 function exportToExcel() {

@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 数据备份与导入模块
- * Medical OCR Pro - Data Backup & Import Module
+ * 医疗病例 AI 识别系统 Pro - 数据管理模块
+ * Medical AI Pro - Data Management Module
  */
 
 // ============================================================================
@@ -20,92 +20,50 @@ document.addEventListener('click', () => {
 dataMenuDropdown.onclick = (e) => e.stopPropagation();
 
 // ============================================================================
-// BACKUP
+// IMPORT DATABASE
 // ============================================================================
-document.getElementById('btn-backup').onclick = () => {
-    if (state.records.length === 0) {
-        showToast('暂无数据可备份', 'warning');
-        return;
+document.getElementById('btn-import-db').onclick = async () => {
+    try {
+        // 打开文件选择对话框
+        const result = await window.sqliteDB.showOpenDialog({
+            title: '选择数据库文件',
+            filters: [{ name: 'SQLite Database', extensions: ['db'] }]
+        });
+
+        if (result.canceled || !result.filePaths.length) {
+            return;
+        }
+
+        const filePath = result.filePaths[0];
+
+        // 导入数据库
+        const importResult = await window.sqliteDB.importDb(filePath);
+
+        if (importResult.success) {
+            // 重新加载数据
+            await db.init();
+            const records = await db.getAll();
+            state.records = records || [];
+            renderRecords();
+            updateStatistics();
+
+            if (importResult.count !== undefined && importResult.count > 0) {
+                showToast(`成功导入 ${importResult.count} 条记录`);
+            } else if (importResult.message) {
+                showToast(importResult.message, 'info');
+            } else {
+                showToast('导入成功');
+            }
+        } else {
+            showToast('导入失败: ' + importResult.error, 'error');
+        }
+    } catch (error) {
+        console.error('导入数据库失败:', error);
+        showToast('导入失败: ' + error.message, 'error');
     }
 
-    const backupData = {
-        version: '2.0',
-        exportedAt: new Date().toISOString(),
-        recordCount: state.records.length,
-        records: state.records.map(r => ({
-            id: r.id,
-            fileName: r.fileName,
-            name: r.name || '未检出',
-            biopsyPathology: r.biopsyPathology || '未检出',
-            tnmStage: r.tnmStage || '待查',
-            surgeryTime: r.surgeryTime || '未检出',
-            postopPathology: r.postopPathology || '未检出',
-            her2Status: r.her2Status || '待查',
-            erStatus: r.erStatus || '待查',
-            ki67: r.ki67 || '待查',
-            originalText: r.originalText || '',
-            status: r.status,
-            createdAt: r.createdAt,
-            // 导出所有有图片的记录，不限制状态
-            imageData: r.imageData || null
-        }))
-    };
-
-    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
-    const link = document.createElement('a');
-    const timestamp = new Date().toISOString();
-    link.href = URL.createObjectURL(blob);
-    link.download = `医疗病例识别_备份_${timestamp}.json`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-
-    showToast(`已备份 ${state.records.length} 条记录`);
-};
-
-// ============================================================================
-// IMPORT
-// ============================================================================
-document.getElementById('btn-import').onclick = () => {
-    document.getElementById('import-file-input').click();
-};
-
-document.getElementById('import-file-input').onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // Ensure database is initialized
-    await db.init();
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-        try {
-            const data = JSON.parse(event.target.result);
-
-            if (!data.records || !Array.isArray(data.records)) {
-                throw new Error('无效的备份文件格式');
-            }
-
-            const importCount = data.records.length;
-
-            // Always append mode - add new records that don't already exist
-            const existingIds = new Set(state.records.map(r => r.id));
-            const newRecords = data.records.filter(r => !existingIds.has(r.id));
-            state.records = [...state.records, ...newRecords];
-
-            // Save to IndexedDB
-            await db.saveAll(newRecords);
-            renderRecords();
-            updateRecentResults();
-
-            showToast(`成功导入 ${newRecords.length} 条记录（跳过 ${importCount - newRecords.length} 条重复）`);
-        } catch (error) {
-            console.error('导入失败:', error);
-            showToast('导入失败: ' + error.message, 'error');
-        }
-    };
-
-    reader.readAsText(file);
-    e.target.value = '';
+    // 关闭下拉菜单
+    document.getElementById('data-menu-dropdown').classList.add('hidden');
 };
 
 // ============================================================================
@@ -137,21 +95,6 @@ function showClearConfirmModal(count) {
     }
 }
 
-// Backup first button
-document.getElementById('btn-clear-backup-first').onclick = () => {
-    // Close modal and trigger backup
-    if (window.closeModalWithFocus) {
-        closeModalWithFocus('clear-confirm-modal');
-    } else {
-        document.getElementById('clear-confirm-modal').classList.remove('active');
-    }
-
-    // Trigger backup
-    setTimeout(() => {
-        document.getElementById('btn-backup').click();
-    }, 100);
-};
-
 // Confirm delete button
 document.getElementById('btn-clear-confirm-delete').onclick = async () => {
     const count = state.records.length;
@@ -164,7 +107,6 @@ document.getElementById('btn-clear-confirm-delete').onclick = async () => {
         state.records = [];
 
         renderRecords();
-        updateRecentResults();
 
         // Close modal
         if (window.closeModalWithFocus) {
@@ -192,3 +134,6 @@ document.getElementById('btn-clear-cancel').onclick = () => {
         document.getElementById('clear-confirm-modal').classList.remove('active');
     }
 };
+
+// Backup first button (no longer needed - just close modal)
+document.getElementById('btn-clear-backup-first')?.remove();

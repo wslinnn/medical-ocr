@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 记录表格模块
- * Medical OCR Pro - Records Table Module
+ * 医疗病例 AI 识别系统 Pro - 记录表格模块
+ * Medical AI Pro - Records Table Module
  */
 
 // ============================================================================
@@ -103,7 +103,7 @@ function renderRecords() {
             <td class="px-4 py-3">${statusBadges[r.status]}</td>
             <td class="px-4 py-3">
                 <div class="flex gap-2">
-                    <button class="text-primary hover:text-cyan-700 font-medium" onclick="viewRecord(${r.id})">查看</button>
+                    <button class="text-primary hover:text-cyan-700 font-medium" onclick="viewRecord('${r.id}')">查看</button>
                 </div>
             </td>
         </tr>

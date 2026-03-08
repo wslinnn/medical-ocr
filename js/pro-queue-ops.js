@@ -1,11 +1,11 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 队列操作模块
- * Medical OCR Pro - Queue Operations Module
+ * 医疗病例 AI 识别系统 Pro - 队列操作模块
+ * Medical AI Pro - Queue Operations Module
  */
 
 async function addFilesToQueue(files) {
     if (!state.token) {
-        showToast('请先保存 API Token', 'error');
+        showToast('请先保存 API Key', 'error');
         return;
     }
 

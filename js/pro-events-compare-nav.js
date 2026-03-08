@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 对比视图导航事件
- * Medical OCR Pro - Compare View Navigation Events
+ * 医疗病例 AI 识别系统 Pro - 对比视图导航事件
+ * Medical AI Pro - Compare View Navigation Events
  */
 
 document.getElementById('btn-compare-prev').onclick = () => {

@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 标签页导航事件
- * Medical OCR Pro - Tab Navigation Events
+ * 医疗病例 AI 识别系统 Pro - 标签页导航事件
+ * Medical AI Pro - Tab Navigation Events
  */
 
 document.getElementById('tab-upload').onclick = () => switchTab('upload');

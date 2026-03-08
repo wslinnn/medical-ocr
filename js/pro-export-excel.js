@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - Excel导出模块
- * Medical OCR Pro - Excel Export Module
+ * 医疗病例 AI 识别系统 Pro - Excel导出模块
+ * Medical AI Pro - Excel Export Module
  */
 
 // ============================================================================

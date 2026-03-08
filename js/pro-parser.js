@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - Markdown 解析模块
- * Medical OCR Pro - Markdown Parser Module
+ * 医疗病例 AI 识别系统 Pro - Markdown 解析模块
+ * Medical AI Pro - Markdown Parser Module
  */
 
 // ============================================================================

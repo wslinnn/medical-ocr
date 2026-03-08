@@ -1,13 +1,37 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 键盘快捷键事件处理
- * Medical OCR Pro - Keyboard Shortcuts Event Handlers
+ * 医疗病例 AI 识别系统 Pro - 键盘快捷键事件处理
+ * Medical AI Pro - Keyboard Shortcuts Event Handlers
  */
 
 // ============================================================================
 // KEYBOARD SHORTCUTS
 // ============================================================================
+
+// Toggle shortcuts sidebar
+function toggleShortcuts() {
+    const sidebar = document.getElementById('shortcuts-sidebar');
+    const overlay = document.getElementById('shortcuts-overlay');
+    if (!sidebar) return;
+
+    if (sidebar.classList.contains('translate-x-full')) {
+        sidebar.classList.remove('translate-x-full');
+        overlay?.classList.remove('hidden');
+    } else {
+        sidebar.classList.add('translate-x-full');
+        overlay?.classList.add('hidden');
+    }
+}
+
+// Add F1 to open shortcuts
 document.addEventListener('keydown', (e) => {
-    // Ignore when typing in input fields
+    // F1 - Open shortcuts sidebar
+    if (e.key === 'F1') {
+        e.preventDefault();
+        toggleShortcuts();
+        return;
+    }
+
+    // Ignore other shortcuts when typing in input fields
     if (e.target.matches('input, textarea, [contenteditable]')) return;
 
     const currentTab = document.querySelector('.tab-btn.text-primary')?.id;
@@ -52,11 +76,11 @@ document.addEventListener('keydown', (e) => {
     }
 
     // ============================================================================
-    // CTRL+1/2/3 - Switch Tabs
+    // CTRL+1/2 - Switch Tabs
     // ============================================================================
-    if (e.ctrlKey && e.key >= '1' && e.key <= '3') {
+    if (e.ctrlKey && e.key >= '1' && e.key <= '2') {
         e.preventDefault();
-        const tabs = ['upload', 'records', 'compare'];
+        const tabs = ['upload', 'compare'];
         switchTab(tabs[parseInt(e.key) - 1]);
         return;
     }
@@ -114,7 +138,7 @@ document.addEventListener('keydown', (e) => {
 
             saveRecords();
             updateCompareView();
-            updateRecentResults();
+            
             showToast('记录已永久删除', 'warning');
         }
         return;

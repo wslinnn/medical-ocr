@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 队列UI渲染模块
- * Medical OCR Pro - Queue UI Rendering Module
+ * 医疗病例 AI 识别系统 Pro - 队列UI渲染模块
+ * Medical AI Pro - Queue UI Rendering Module
  */
 
 function updateQueueUI() {

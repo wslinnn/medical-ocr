@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 文件操作模块
- * Medical OCR Pro - File Operations Module
+ * 医疗病例 AI 识别系统 Pro - 文件操作模块
+ * Medical AI Pro - File Operations Module
  */
 
 // ============================================================================

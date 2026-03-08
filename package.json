@@ -1,7 +1,7 @@
 {
   "name": "medical-ocr-pro",
   "version": "1.0.0",
-  "description": "医疗病例 OCR 识别系统 Pro",
+  "description": "医疗病例 AI 识别系统 Pro",
   "author": "Medical OCR Team",
   "main": "main-pro.js",
   "license": "MIT",
@@ -21,8 +21,10 @@
     "wait-on": "^8.0.3"
   },
   "build": {
-    "appId": "com.medical.ocr.pro",
-    "productName": "医疗病例OCR Pro",
+    "appId": "com.medical.ai.pro",
+    "productName": "test",
+    "asar": true,
+    "compression": "maximum",
     "files": [
       "main-pro.js",
       "preload-pro.js",
@@ -30,8 +32,14 @@
       "css/**/*",
       "js/**/*",
       "config.json",
-      "package.json",
-      "assets/**/*"
+      "assets/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/sql.js/dist/sql-wasm.wasm",
+        "to": "sql-wasm.wasm"
+      }
     ],
     "directories": {
       "output": "dist",
@@ -41,27 +49,33 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
-      ],
-      "icon": "assets/icon.png"
+      ]
     },
     "mac": {
-      "target": ["dmg"],
-      "icon": "assets/icon.png",
+      "target": [
+        "dmg"
+      ],
       "category": "public.app-category.medical"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "installerIcon": "assets/icon.png",
-      "uninstallerIcon": "assets/icon.png",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
     }
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "sql.js": "^1.14.1"
   }
 }

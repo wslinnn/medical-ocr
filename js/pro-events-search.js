@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 搜索与筛选事件
- * Medical OCR Pro - Search & Filter Events
+ * 医疗病例 AI 识别系统 Pro - 搜索与筛选事件
+ * Medical AI Pro - Search & Filter Events
  */
 
 dom.searchInput.oninput = () => {

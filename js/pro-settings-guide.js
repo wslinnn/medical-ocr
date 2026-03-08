@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 设置和引导模块
- * Medical OCR Pro - Settings and Onboarding Module
+ * 医疗病例 AI 识别系统 Pro - 设置和引导模块
+ * Medical AI Pro - Settings and Onboarding Module
  */
 
 // ============================================================================
@@ -47,17 +47,17 @@ function updateTokenStatus() {
         const isValid = state.token.length >= 20;
         statusEl.innerHTML = `
             <span class="status-badge ${isValid ? 'reviewed' : 'flagged'}">${isValid ? '已配置' : '格式可能不正确'}</span>
-            <span class="text-gray-500">${isValid ? 'Token 已保存' : '请检查 Token 格式'}</span>
+            <span class="text-gray-500">${isValid ? 'API Key 已保存' : '请检查 API Key 格式'}</span>
         `;
     } else {
         statusEl.innerHTML = `
             <span class="status-badge pending">未配置</span>
-            <span class="text-gray-500">请输入 Token 后点击保存</span>
+            <span class="text-gray-500">请输入 API Key 后点击保存</span>
         `;
     }
 }
 
-function saveTokenFromSettings() {
+async function saveTokenFromSettings() {
     const tokenInput = document.getElementById('settings-api-token');
     if (!tokenInput) return;
 
@@ -65,10 +65,14 @@ function saveTokenFromSettings() {
 
     // Allow empty token (user can clear it)
     state.token = newToken;
-    if (newToken) {
-        localStorage.setItem('aistudio_token', newToken);
-    } else {
-        localStorage.removeItem('aistudio_token');
+
+    // 保存到 electron-store (如果可用)
+    if (window.electronStore) {
+        if (newToken) {
+            await window.electronStore.set('token', newToken);
+        } else {
+            await window.electronStore.delete('token');
+        }
     }
 
     // Update API token in the upload view if visible
@@ -78,15 +82,18 @@ function saveTokenFromSettings() {
     }
 
     updateTokenStatus();
-    showToast(newToken ? 'Token 已保存' : 'Token 已清空', newToken ? 'success' : 'info');
+    showToast(newToken ? 'API Key 已保存' : 'API Key 已清空', newToken ? 'success' : 'info');
+    closeSettingsModal();
 }
 
-function clearTokenFromSettings() {
+async function clearTokenFromSettings() {
     // Clear token from state
     state.token = '';
 
-    // Clear from localStorage
-    localStorage.removeItem('aistudio_token');
+    // 清除 electron-store
+    if (window.electronStore) {
+        await window.electronStore.delete('token');
+    }
 
     // Clear the input field
     const tokenInput = document.getElementById('settings-api-token');
@@ -103,7 +110,8 @@ function clearTokenFromSettings() {
     // Update status display
     updateTokenStatus();
 
-    showToast('Token 已清空', 'info');
+    showToast('API KEY 已清空', 'info');
+    closeSettingsModal();
 }
 
 // Toggle token visibility
@@ -136,19 +144,10 @@ function toggleTokenVisibility() {
 // ============================================================================
 let currentGuideStep = 1;
 
-// Check if user has seen the guide before
-function hasSeenGuide() {
-    return localStorage.getItem('has_seen_guide') === 'true';
-}
-
-// Mark guide as seen
-function markGuideAsSeen() {
-    localStorage.setItem('has_seen_guide', 'true');
-}
-
-// Should show guide?
+// Should show guide? - 只检查 token 是否为空
 function shouldShowGuide() {
-    return !state.token && !hasSeenGuide();
+    // 启动时如果没设置 key 就弹出引导，设置了就不弹出
+    return !state.token;
 }
 
 // Show guide modal
@@ -174,7 +173,6 @@ function hideGuideModal() {
             modal.classList.remove('active');
         }
     }
-    markGuideAsSeen();
 }
 
 // Show specific guide step
@@ -216,25 +214,29 @@ function showGuideStep(stepNumber) {
 }
 
 // Guide navigation
-function nextGuideStep() {
+async function nextGuideStep() {
     if (currentGuideStep < 3) {
         if (currentGuideStep === 2) {
             // Save token from guide
             const tokenInput = document.getElementById('guide-api-token');
             if (!tokenInput) {
-                showToast('Token 输入框未找到', 'error');
+                showToast('API KEY 输入框未找到', 'error');
                 return;
             }
 
             const newToken = tokenInput.value.trim();
 
             if (!newToken) {
-                showToast('请输入 API Token', 'warning');
+                showToast('请输入 API KEY', 'warning');
                 return;
             }
 
             state.token = newToken;
-            localStorage.setItem('aistudio_token', newToken);
+
+            // 保存到 electron-store
+            if (window.electronStore) {
+                await window.electronStore.set('token', newToken);
+            }
 
             // Update settings modal input
             const settingsTokenInput = document.getElementById('settings-api-token');
@@ -242,7 +244,7 @@ function nextGuideStep() {
                 settingsTokenInput.value = newToken;
             }
 
-            showToast('Token 已保存', 'success');
+            showToast('API KEY 已保存', 'success');
         }
 
         showGuideStep(currentGuideStep + 1);
@@ -257,12 +259,12 @@ function prevGuideStep() {
 
 function skipGuide() {
     hideGuideModal();
-    showToast('您可以随时点击右上角设置按钮配置 API Token', 'info');
+    showToast('您可以随时点击右上角设置按钮配置 API KEY', 'info');
 }
 
 function finishGuide() {
     hideGuideModal();
-    showToast('开始使用医疗病例 OCR 识别系统！', 'success');
+    showToast('开始使用医疗病例 AI 识别系统！', 'success');
 }
 
 // ============================================================================

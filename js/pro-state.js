@@ -1,23 +1,11 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 状态管理
- * Medical OCR Pro - State Management
+ * 医疗病例 AI 识别系统 Pro - 状态管理
+ * Medical AI Pro - State Management
  */
 
 // ============================================================================
 // STATE
 // ============================================================================
-// Safe localStorage parsing with error handling
-function safeParseLocalStorage(key, defaultValue = []) {
-    try {
-        const stored = localStorage.getItem(key);
-        if (stored === null) return defaultValue;
-        return JSON.parse(stored);
-    } catch (e) {
-        console.error(`解析localStorage[${key}]失败:`, e);
-        console.warn('使用默认值代替损坏的数据');
-        return defaultValue;
-    }
-}
 
 // ============================================================================
 // UNIQUE ID GENERATOR
@@ -36,8 +24,9 @@ function generateUniqueId() {
 }
 
 const state = {
-    token: localStorage.getItem('aistudio_token') || '',
-    model: localStorage.getItem('ocr_model') || 'qwen3.5-plus',
+    token: '', // 异步加载，从 electron-store
+    model: 'qwen3.5-plus', // 异步加载，从 electron-store
+    customPrompt: '', // 异步加载，从 electron-store
     records: [], // 初始为空，从 IndexedDB 加载
     fileQueue: [],
     compareIndex: -1,
@@ -65,6 +54,28 @@ const state = {
 };
 
 // ============================================================================
+// ELECTRON-STORE INITIALIZATION (Settings - auto-isolated by appId)
+// ============================================================================
+async function initSettingsFromStore() {
+    if (!window.electronStore) {
+        throw new Error('electron-store 不可用，请使用 Electron 环境运行');
+    }
+
+    const token = await window.electronStore.get('token');
+    const model = await window.electronStore.get('model');
+    const customPrompt = await window.electronStore.get('customPrompt');
+
+    state.token = token || '';
+    state.model = model || 'qwen3.5-plus';
+    // customPrompt 为空时，getPrompt() 会返回 DEFAULT_PROMPT
+    // 这里保持为空字符串，这样可以通过 state.customPrompt 是否为空来判断是否有自定义
+    state.customPrompt = customPrompt || '';
+
+    console.log('✅ 已从 electron-store 加载设置');
+    console.log(`📁 用户数据目录: ${await window.electronStore.getUserDataPath()}`);
+}
+
+// ============================================================================
 // PERSISTENCE (IndexedDB)
 // ============================================================================
 async function saveRecords() {
@@ -81,23 +92,6 @@ async function loadRecords() {
         await db.init();
         const records = await db.getAll();
         state.records = records || [];
-        
-        // 兼容性检查：如果 localStorage 中还有数据，则迁移
-        const legacyData = localStorage.getItem('records');
-        if (legacyData) {
-            try {
-                const legacyRecords = JSON.parse(legacyData);
-                if (legacyRecords && legacyRecords.length > 0) {
-                    console.log('检测到旧版 localStorage 数据，正在迁移...');
-                    state.records = [...state.records, ...legacyRecords];
-                    await saveRecords();
-                    localStorage.removeItem('records');
-                    console.log('数据迁移成功');
-                }
-            } catch (e) {
-                console.error('迁移旧数据失败:', e);
-            }
-        }
     } catch (e) {
         console.error('初始化数据库失败:', e);
         showToast('数据库初始化失败', 'error');
@@ -116,7 +110,6 @@ const dom = {
     progressBar: document.getElementById('progress-bar'),
     progressText: document.getElementById('progress-text'),
     progressCounts: document.getElementById('progress-counts'),
-    recentResults: document.getElementById('recent-results'),
     recordsBody: document.getElementById('records-body'),
     selectAll: document.getElementById('select-all'),
     searchInput: document.getElementById('search-input'),

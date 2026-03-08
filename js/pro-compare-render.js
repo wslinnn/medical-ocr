@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 对比视图渲染模块
- * Medical OCR Pro - Compare View Rendering Module
+ * 医疗病例 AI 识别系统 Pro - 对比视图渲染模块
+ * Medical AI Pro - Compare View Rendering Module
  */
 
 // ============================================================================
@@ -83,7 +83,14 @@ function renderCompareContent(record) {
     const zoomLevel = document.getElementById('zoom-level');
 
     if (record.imageData) {
-        img.src = record.imageData;
+        // 如果是 Uint8Array (BLOB)，创建 Blob URL
+        if (record.imageData instanceof Uint8Array) {
+            const blob = new Blob([record.imageData], { type: 'image/jpeg' });
+            img.src = URL.createObjectURL(blob);
+        } else {
+            // 兼容 base64 格式
+            img.src = record.imageData;
+        }
         img.onerror = () => {
             img.style.display = 'none';
             imgError.classList.remove('hidden');

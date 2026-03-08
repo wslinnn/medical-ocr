@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 导出选项模态框模块
- * Medical OCR Pro - Export Modal Module
+ * 医疗病例 AI 识别系统 Pro - 导出选项模态框模块
+ * Medical AI Pro - Export Modal Module
  */
 
 // ============================================================================

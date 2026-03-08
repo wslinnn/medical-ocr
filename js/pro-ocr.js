@@ -1,17 +1,22 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - OCR API 调用模块
- * Medical OCR Pro - OCR API Module
+ * 医疗病例 AI 识别系统 Pro - AI API 调用模块
+ * Medical AI Pro - AI API Module
  */
 
 // ============================================================================
-// OCR API CONFIGURATION - 千问大模型
+// AI API CONFIGURATION - 千问大模型
 // ============================================================================
 const OCR_API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
 const OCR_TIMEOUT = 60000; // 60 seconds (VLM needs more time)
 const MAX_IMAGE_SIZE = 7 * 1024 * 1024; // 7MB
 
-// OCR prompt - 让模型扮演医疗病例识别专家
-const OCR_PROMPT = `请识别图片内姓名、穿刺病理、TNM分期、手术时间、术后病理、HER2状态、ER状态、ki67这些分类的信息，按照不同分类输出，对于无法确定的就只输出无法确定。注意数据可能不止一侧。只单纯使用JSON格式输出上面原始分类内容，无需嵌套JSON和集合。`;
+// 默认提示词
+const DEFAULT_PROMPT = '请识别图片内姓名、穿刺病理、TNM分期、手术时间、术后病理、HER2状态、ER状态、ki67这些分类的信息，按照不同分类输出，对于无法确定的就只输出无法确定。注意数据可能不止一侧。只单纯使用JSON格式输出上面原始分类内容，无需嵌套JSON和集合。';
+
+// Get prompt (custom or default) - 从 state 读取（已在启动时加载）
+function getPrompt() {
+    return state.customPrompt || DEFAULT_PROMPT;
+}
 
 // ============================================================================
 // QUEUE PROCESSING
@@ -21,7 +26,7 @@ async function processQueue() {
 
     // Check token
     if (!state.token) {
-        showToast('请先配置 API Token', 'error');
+        showToast('请先配置 API Key', 'error');
         dom.apiToken.focus();
         return;
     }
@@ -69,7 +74,7 @@ async function processQueue() {
                 fileData = await readFileAsBase64(currentItem.file);
             }
 
-            // Call OCR API (千问大模型)
+            // Call AI API (千问大模型)
             const result = await callOCRAPI(fileData, mimeType);
 
             // Process result - 千问返回的是content中的文本
@@ -102,9 +107,17 @@ async function processQueue() {
             let errorMessage = '识别失败';
             let errorDetails = error.message || '未知错误';
 
-            if (error.message.includes('JSON')) {
+            // 检查是否是 API 返回的错误（千问返回的 error 对象）
+            if (error.message && (error.message.includes('Invalid chat format') || error.message.includes('invalid_request_error'))) {
+                // API 返回的业务错误，显示更详细的信息
+                errorMessage = 'API 请求错误';
+                errorDetails = error.message;
+            } else if (error.message && error.message.includes('JSON')) {
                 // 能解析到响应但JSON格式不对
                 errorMessage = '解析失败';
+            } else if (!error.message || error.message === '请求失败') {
+                // 网络错误或其他
+                errorMessage = '请求失败';
             }
 
             currentItem.status = 'failed';
@@ -115,7 +128,7 @@ async function processQueue() {
 
         saveRecords();
         renderRecords();
-        updateRecentResults();
+        
         updateQueueUI();
     }
 
@@ -154,7 +167,7 @@ function disableDataModifyingOperations(disable) {
 }
 
 // ============================================================================
-// OCR API CALL - 千问大模型
+// AI API CALL - 千问大模型
 // ============================================================================
 async function callOCRAPI(fileData, mimeType) {
     const response = await fetch(OCR_API_URL, {
@@ -178,7 +191,7 @@ async function callOCRAPI(fileData, mimeType) {
                         },
                         {
                             type: 'text',
-                            text: OCR_PROMPT
+                            text: getPrompt()
                         }
                     ]
                 }
@@ -196,7 +209,10 @@ async function callOCRAPI(fileData, mimeType) {
 
     // Handle business logic error codes in the response body
     if (data.error) {
-        throw new Error(data.error.message || data.error.code || '请求失败');
+        // 直接显示 API 返回的 type 和 message
+        const errorType = data.error.type || 'error';
+        const errorMsg = data.error.message || '未知错误';
+        throw new Error(`[${errorType}] ${errorMsg}`);
     }
 
     return data;

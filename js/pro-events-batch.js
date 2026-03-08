@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 批量操作事件
- * Medical OCR Pro - Batch Operation Events
+ * 医疗病例 AI 识别系统 Pro - 批量操作事件
+ * Medical AI Pro - Batch Operation Events
  */
 
 // ============================================================================
@@ -110,7 +110,7 @@ document.getElementById('btn-batch-delete').onclick = async () => {
             state.records = state.records.filter(r => !ids.includes(r.id));
 
             renderRecords();
-            updateRecentResults();
+            
             updateSelectedCount();
             dom.selectAll.checked = false;
             showToast(`已删除 ${ids.length} 条记录`);

@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 分页事件
- * Medical OCR Pro - Pagination Events
+ * 医疗病例 AI 识别系统 Pro - 分页事件
+ * Medical AI Pro - Pagination Events
  */
 
 document.getElementById('btn-page-first').onclick = () => {

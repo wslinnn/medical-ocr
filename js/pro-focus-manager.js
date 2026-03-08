@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 焦点管理模块
- * Medical OCR Pro - Focus Management Module
+ * 医疗病例 AI 识别系统 Pro - 焦点管理模块
+ * Medical AI Pro - Focus Management Module
  * Handles keyboard navigation and modal focus trapping
  */
 

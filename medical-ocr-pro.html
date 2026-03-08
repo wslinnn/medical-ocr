@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>医疗病例 OCR 识别系统 Pro</title>
+    <title>医疗病例 AI 识别系统 Pro</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -29,8 +29,98 @@
     <!-- Toast Container -->
     <div id="toast-container" class="fixed top-4 right-4 z-[100] flex flex-col gap-2"></div>
 
+    <!-- Keyboard Shortcuts Sidebar -->
+    <div id="shortcuts-sidebar" class="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-[90]">
+        <div class="flex items-center justify-between p-4 border-b bg-gray-50">
+            <h3 class="font-semibold text-gray-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                </svg>
+                快捷键
+            </h3>
+            <button id="btn-close-shortcuts" onclick="toggleShortcuts()" class="p-1 hover:bg-gray-200 rounded">
+                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4">
+            <!-- General Shortcuts -->
+            <div class="mb-6">
+                <h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">通用</h4>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-700">导出数据</span>
+                        <kbd class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded border">Ctrl + E</kbd>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-700">搜索</span>
+                        <kbd class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded border">Ctrl + F</kbd>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-700">切换标签页</span>
+                        <div class="flex gap-1">
+                            <kbd class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded border">Ctrl + 1</kbd>
+                            <kbd class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded border">2</kbd>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-700">关闭弹窗</span>
+                        <kbd class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded border">Esc</kbd>
+                    </div>
+                </div>
+            </div>
+            <!-- Compare View Shortcuts -->
+            <div class="mb-6">
+                <h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">对比审核</h4>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-700">上一条</span>
+                        <kbd class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded border">←</kbd>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-700">下一条</span>
+                        <kbd class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded border">→</kbd>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-700">确认审核</span>
+                        <kbd class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded border">Ctrl + Enter</kbd>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-700">标记复核</span>
+                        <kbd class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded border">Shift + F</kbd>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-700">删除记录</span>
+                        <kbd class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded border">Shift + Delete</kbd>
+                    </div>
+                </div>
+            </div>
+            <!-- Image Zoom Shortcuts -->
+            <div>
+                <h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">图片缩放</h4>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-700">放大</span>
+                        <kbd class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded border">Ctrl + +</kbd>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-700">缩小</span>
+                        <kbd class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded border">Ctrl + -</kbd>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-700">重置缩放</span>
+                        <kbd class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded border">Ctrl + 0</kbd>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shortcuts Overlay -->
+    <div id="shortcuts-overlay" class="fixed inset-0 bg-black/30 z-[85] hidden" onclick="toggleShortcuts()"></div>
+
     <!-- Hidden file input for import -->
-    <input type="file" id="import-file-input" accept=".json" class="hidden">
 
     <!-- Main Container -->
     <div class="max-w-[95%] mx-auto px-4 py-6">
@@ -41,7 +131,7 @@
                     <svg class="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                     </svg>
-                    医疗病例 OCR 识别系统 Pro
+                    医疗病例 AI 识别系统 Pro
                 </h1>
                 <div class="flex items-center gap-4">
                     <!-- Network Status -->
@@ -56,6 +146,18 @@
                         </svg>
                         <span id="model-display-text" class="text-sm text-gray-600">模型: qwen3.5-plus</span>
                     </div>
+                    <!-- Keyboard Shortcuts Button -->
+                    <button id="btn-shortcuts" onclick="toggleShortcuts()" class="p-2 bg-white rounded-lg shadow-sm border hover:bg-gray-50 hover:border-gray-300 transition-colors" title="快捷键 (F1)">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                        </svg>
+                    </button>
+                    <!-- Custom Prompt Button -->
+                    <button id="btn-prompt" class="p-2 bg-white rounded-lg shadow-sm border hover:bg-gray-50 hover:border-gray-300 transition-colors" title="自定义提示词">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </button>
                     <!-- Settings Button -->
                     <button id="btn-settings" class="p-2 bg-white rounded-lg shadow-sm border hover:bg-gray-50 hover:border-gray-300 transition-colors" title="设置">
                         <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -228,22 +330,13 @@
                                             <div class="text-xs text-gray-500">检测并处理重复记录</div>
                                         </div>
                                     </button>
-                                    <button id="btn-backup" class="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3">
-                                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                                        </svg>
-                                        <div>
-                                            <div class="font-medium">备份数据</div>
-                                            <div class="text-xs text-gray-500">导出JSON完整备份</div>
-                                        </div>
-                                    </button>
-                                    <button id="btn-import" class="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3">
+                                    <button id="btn-import-db" class="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3">
                                         <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                                         </svg>
                                         <div>
-                                            <div class="font-medium">导入数据</div>
-                                            <div class="text-xs text-gray-500">从备份恢复数据</div>
+                                            <div class="font-medium">导入数据库</div>
+                                            <div class="text-xs text-gray-500">从 .db 文件恢复数据</div>
                                         </div>
                                     </button>
                                     <div class="border-t"></div>
@@ -295,7 +388,7 @@
 
                         <!-- Records Table -->
                         <div class="flex-1 overflow-hidden flex flex-col min-h-0">
-                            <div class="border border-gray-200 rounded-lg overflow-hidden flex-1 overflow-y-auto">
+                            <div class="border border-gray-200 rounded-lg overflow-hidden flex-1 overflow-x-auto overflow-y-auto">
                                 <table class="w-full border-collapse">
                                     <thead class="bg-gray-50 sticky top-0 z-10">
                                         <tr class="border-b border-gray-200">
@@ -641,12 +734,6 @@
 
             <div class="space-y-2 mb-6 text-sm text-gray-600">
                 <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>
-                    <span>建议：先备份数据再清空</span>
-                </div>
-                <div class="flex items-center gap-2">
                     <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -655,12 +742,6 @@
             </div>
 
             <div class="flex gap-3">
-                <button id="btn-clear-backup-first" class="flex-1 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                    </svg>
-                    先备份数据
-                </button>
                 <button id="btn-clear-confirm-delete" class="flex-1 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -689,7 +770,7 @@
             </div>
 
             <div class="space-y-6">
-                <!-- API Token Configuration -->
+                <!-- API Key Configuration -->
                 <div class="space-y-4">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -698,15 +779,15 @@
                             </svg>
                         </div>
                         <div>
-                            <h4 class="font-medium text-gray-900">API Token 配置</h4>
-                            <p class="text-sm text-gray-500">用于连接阿里云千问大模型服务</p>
+                            <h4 class="font-medium text-gray-900">API Key 配置</h4>
+                            <p class="text-sm text-gray-500">用于连接阿里云百炼大模型服务</p>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">百炼 API Token</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">阿里云百炼 API Key</label>
                         <div class="flex gap-2">
-                            <input type="password" id="settings-api-token" placeholder="请输入 API Token"
+                            <input type="password" id="settings-api-token" placeholder="请输入 API Key"
                                 class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <button id="btn-toggle-token-visibility" class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50" title="显示/隐藏">
                                 <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -721,7 +802,7 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">选择模型</label>
                         <select id="settings-model" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="qwen3.5-plus" selected>qwen3.5-plus (推荐)</option>
-                            <option value="qwen3.5-flash">qwen3.5-flash (便宜)</option>
+                            <option value="qwen3.5-flash">qwen3.5-flash</option>
                             <option value="qwen3-vl-plus">qwen3-vl-plus</option>
                             <option value="qwen3-vl-flash">qwen3-vl-flash</option>
                         </select>
@@ -730,7 +811,7 @@
                     <!-- Token Status -->
                     <div id="token-status" class="flex items-center gap-2 text-sm mb-4">
                         <span class="status-badge pending">未配置</span>
-                        <span class="text-gray-500">请输入 Token 后点击保存</span>
+                        <span class="text-gray-500">请输入 API KEY 后点击保存</span>
                     </div>
 
                     <!-- Action Buttons -->
@@ -739,7 +820,7 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
-                            保存 Token
+                            保存 API KEY
                         </button>
                         <button id="btn-clear-token" class="px-4 py-2.5 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 flex items-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -757,10 +838,54 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         <div class="text-sm text-blue-800">
-                            <p class="font-medium mb-1">如何获取 API Token?</p>
+                            <p class="font-medium mb-1">如何获取 API Key?</p>
                             <p class="text-blue-700">请访问 <a href="javascript:void(0)" onclick="openExternalLink('https://bailian.console.aliyun.com/cn-beijing/#/home')" class="underline cursor-pointer">阿里云百炼</a>，创建API-KEY后即可使用</p>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Prompt Modal -->
+    <div id="prompt-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="prompt-title">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="flex items-center justify-between mb-6">
+                <h3 id="prompt-title" class="text-xl font-semibold text-gray-900">自定义提示词</h3>
+                <button id="btn-prompt-close" class="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.932-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.932 3z"/>
+                        </svg>
+                        <div class="text-sm text-yellow-800">
+                            <p class="font-medium mb-1">提示</p>
+                            <p class="text-yellow-700">不修改时将使用默认提示词。修改后，系统将使用您自定义的提示词进行识别。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">识别提示词</label>
+                    <textarea id="custom-prompt" rows="8"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        placeholder="请输入自定义的识别提示词..."></textarea>
+                </div>
+
+                <div class="flex gap-2">
+                    <button id="btn-prompt-reset" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                        恢复默认
+                    </button>
+                    <button id="btn-prompt-save" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        保存
+                    </button>
                 </div>
             </div>
         </div>
@@ -795,7 +920,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
                     </div>
-                    <h3 id="guide-title" class="text-2xl font-bold text-gray-900 mb-2">欢迎使用医疗病例 OCR 识别系统</h3>
+                    <h3 id="guide-title" class="text-2xl font-bold text-gray-900 mb-2">欢迎使用医疗病例 AI 识别系统</h3>
                     <p class="text-gray-600">快速、准确地识别医疗病例文档</p>
                 </div>
 
@@ -830,7 +955,7 @@
                 </div>
             </div>
 
-            <!-- Step 2: Configure Token -->
+            <!-- Step 2: Configure API Key -->
             <div id="guide-step-2" class="guide-content hidden">
                 <div class="text-center mb-6">
                     <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -838,8 +963,8 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964a6 6 0 016.828 0z"/>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-2">配置 API Token</h3>
-                    <p class="text-gray-600">需要配置 API Token 才能使用 OCR 识别功能</p>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">配置 API Key</h3>
+                    <p class="text-gray-600">需要配置 API Key 才能使用 AI 识别功能</p>
                 </div>
 
                 <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
@@ -849,15 +974,28 @@
                         </svg>
                         <div class="text-sm text-yellow-800">
                             <p class="font-medium mb-1">重要提示</p>
-                            <p class="text-yellow-700">API Token 是访问 OCR 服务的密钥，请妥善保管。本系统不会将您的 Token 发送给任何第三方服务器。</p>
+                            <p class="text-yellow-700">API Key 是访问 AI 服务的密钥，请妥善保管。本系统不会将您的 Key 发送给任何第三方服务器。</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">DashScope API Token</label>
-                    <input type="password" id="guide-api-token" placeholder="请输入您的阿里云DashScope API Token"
+                    <label class="block text-sm font-medium text-gray-700 mb-2">阿里云百炼 API Key</label>
+                    <input type="password" id="guide-api-token" placeholder="请输入您的阿里云百炼 API Key"
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg">
+                </div>
+
+                <!-- Help Info -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div class="text-sm text-blue-800">
+                            <p class="font-medium mb-1">如何获取 API Key?</p>
+                            <p class="text-blue-700">请访问 <a href="javascript:void(0)" onclick="openExternalLink('https://bailian.console.aliyun.com/cn-beijing/#/home')" class="underline cursor-pointer">阿里云百炼</a>，创建API-KEY后即可使用</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="flex gap-3">
@@ -879,7 +1017,7 @@
                         </svg>
                     </div>
                     <h3 class="text-2xl font-bold text-gray-900 mb-2">准备就绪！</h3>
-                    <p class="text-gray-600">API Token 已配置完成，现在可以开始使用了</p>
+                    <p class="text-gray-600">API Key 已配置完成，现在可以开始使用了</p>
                 </div>
 
                 <div class="space-y-3 mb-6">
@@ -963,6 +1101,86 @@
                 window.open(url);
             }
         }
+
+        // Toggle shortcuts sidebar
+        function toggleShortcuts() {
+            const sidebar = document.getElementById('shortcuts-sidebar');
+            const overlay = document.getElementById('shortcuts-overlay');
+            if (!sidebar) return;
+
+            if (sidebar.classList.contains('translate-x-full')) {
+                sidebar.classList.remove('translate-x-full');
+                overlay?.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('translate-x-full');
+                overlay?.classList.add('hidden');
+            }
+        }
+
+        // 注意：DEFAULT_PROMPT 和 getPrompt() 函数定义在 pro-ocr.js 中
+        // 这里不再重复定义，避免变量冲突
+
+        // Open prompt modal
+        async function openPromptModal() {
+            const modal = document.getElementById('prompt-modal');
+            const textarea = document.getElementById('custom-prompt');
+            if (!modal || !textarea) return;
+
+            if (!window.electronStore) {
+                throw new Error('electron-store 不可用，请使用 Electron 环境运行');
+            }
+
+            const customPrompt = await window.electronStore.get('customPrompt');
+            textarea.value = customPrompt || DEFAULT_PROMPT;
+
+            modal.classList.add('active');
+        }
+
+        // Close prompt modal
+        function closePromptModal() {
+            const modal = document.getElementById('prompt-modal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        }
+
+        // Save prompt - only save when different from default
+        async function savePrompt() {
+            if (!window.electronStore) {
+                throw new Error('electron-store 不可用，请使用 Electron 环境运行');
+            }
+
+            const textarea = document.getElementById('custom-prompt');
+            if (!textarea) return;
+
+            const value = textarea.value.trim();
+            if (value === DEFAULT_PROMPT) {
+                // Same as default, remove custom prompt
+                await window.electronStore.delete('customPrompt');
+                state.customPrompt = ''; // 更新 state
+                showToast('已恢复默认提示词', 'info');
+            } else if (value) {
+                // Different from default, save custom prompt
+                await window.electronStore.set('customPrompt', value);
+                state.customPrompt = value; // 更新 state
+                showToast('提示词已保存', 'success');
+            }
+            closePromptModal();
+        }
+
+        // Reset prompt to default
+        function resetPrompt() {
+            const textarea = document.getElementById('custom-prompt');
+            if (textarea) {
+                textarea.value = DEFAULT_PROMPT;
+            }
+        }
+
+        // Event listeners for prompt modal
+        document.getElementById('btn-prompt')?.addEventListener('click', openPromptModal);
+        document.getElementById('btn-prompt-close')?.addEventListener('click', closePromptModal);
+        document.getElementById('btn-prompt-save')?.addEventListener('click', savePrompt);
+        document.getElementById('btn-prompt-reset')?.addEventListener('click', resetPrompt);
     </script>
 </body>
 </html>

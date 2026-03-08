@@ -1,6 +1,6 @@
 /**
- * 医疗病例 OCR 识别系统 Pro - 上传事件处理
- * Medical OCR Pro - Upload Event Handlers
+ * 医疗病例 AI 识别系统 Pro - 上传事件处理
+ * Medical AI Pro - Upload Event Handlers
  */
 
 // ============================================================================
