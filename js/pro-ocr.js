@@ -31,6 +31,12 @@ async function processQueue() {
         return;
     }
 
+    // Check network connection
+    if (!navigator.onLine) {
+        showToast('网络已断开，请检查网络连接', 'error');
+        return;
+    }
+
     state.processing = true;
     state.shouldStopProcessing = false;
     state.processStartTime = Date.now(); // Track start time for ETA calculation
