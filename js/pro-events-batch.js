@@ -152,5 +152,5 @@ document.getElementById('btn-batch-delete').onclick = () => {
             console.error('删除记录失败:', error);
             showToast('删除记录失败: ' + error.message, 'error');
         }
-    }
+    })
 };

@@ -22,11 +22,13 @@
     "wait-on": "^8.0.3"
   },
   "build": {
+    "publish": null,
     "appId": "com.medical.ai.pro",
     "productName": "医疗病例AI识别系统",
     "asar": true,
     "compression": "maximum",
     "files": [
+      "!**/app-update.yml",
       "main-pro.js",
       "preload-pro.js",
       "medical-ocr-pro.html",
