@@ -161,7 +161,7 @@
         </div>
 
         <!-- Upload View -->
-        <div id="view-upload" class="view-panel">
+        <div id="view-upload" class="view-panel overflow-hidden">
             <div class="flex gap-6 h-[calc(100vh-220px)]">
                 <!-- Left Panel - Upload & Queue (fixed width) -->
                 <div class="w-[400px] flex-shrink-0 flex flex-col gap-6">
@@ -187,7 +187,7 @@
                     </div>
 
                     <!-- Queue Card -->
-                    <div class="bg-white rounded-2xl shadow p-6 flex-1 flex flex-col">
+                    <div class="bg-white rounded-2xl shadow p-6 flex-1 flex flex-col min-h-0">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="font-semibold flex items-center gap-2">
                                 <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,7 +197,7 @@
                             </h3>
                             <span id="queue-count" class="text-sm text-gray-500">0 个文件</span>
                         </div>
-                        <div id="file-queue" class="flex-1 overflow-y-auto mb-4 min-h-0">
+                        <div id="file-queue" class="flex-1 overflow-y-auto mb-4 min-h-0" style="max-height: calc(100% - 20px);">
                             <div class="flex flex-col items-center justify-center h-full py-8">
                                 <svg class="w-12 h-12 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>

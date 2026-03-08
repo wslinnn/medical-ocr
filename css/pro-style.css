@@ -9,6 +9,7 @@
 body {
     font-family: 'Figtree', 'Noto Sans SC', sans-serif;
     background-color: #F0FDFA;
+    overflow: hidden;
 }
 
 /* 可编辑单元格 */
