@@ -148,6 +148,12 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                         </svg>
                     </button>
+                    <!-- Open Data Folder Button -->
+                    <button id="btn-open-data-folder" class="p-2 bg-white rounded-lg shadow-sm border hover:bg-gray-50 hover:border-gray-300 transition-colors" title="打开数据文件夹">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </header>
@@ -444,9 +450,9 @@
                         对比审核
                     </h3>
                     <div class="flex items-center gap-3">
-                        <span id="compare-index" class="text-sm text-gray-600">0 / 0</span>
-                        <span id="compare-status" class="status-badge pending">待审核</span>
-                        <div class="flex items-center gap-2">
+                        <span id="compare-index" class="text-sm text-gray-600"></span>
+                        <span id="compare-status" class="status-badge pending"></span>
+                        <div class="flex items-center gap-2 compare-filters">
                             <span class="text-sm text-gray-500">筛选:</span>
                             <button id="compare-filter-pending" class="filter-btn active">待审核</button>
                             <button id="compare-filter-flagged" class="filter-btn">需复审</button>
@@ -467,9 +473,6 @@
                     <!-- Default: No data state -->
                     <div id="compare-no-data" class="h-full w-full flex items-center justify-center">
                         <div class="text-center text-gray-400">
-                            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0118.586 5H19a2 2 0 012 2v14a2 2 0 01-2 2z"/>
-                            </svg>
                             <p class="text-lg">暂无记录</p>
                             <p class="text-sm mt-2">请先上传文件进行识别</p>
                         </div>
@@ -1106,15 +1109,12 @@
     <!-- 使用系统浏览器打开外部链接 -->
     <script>
         function openExternalLink(url) {
-            // 直接调用主进程暴露的 IPC
-            if (typeof require !== 'undefined') {
-                try {
-                    const electron = require('electron');
-                    electron.ipcRenderer.invoke('open-external', url);
-                } catch (e) {
-                    console.error('IPC调用失败:', e);
+            // 使用 preload 暴露的 API 调用系统浏览器
+            if (window.sqliteDB && window.sqliteDB.openExternal) {
+                window.sqliteDB.openExternal(url).catch(e => {
+                    console.error('打开外部链接失败:', e);
                     window.open(url);
-                }
+                });
             } else {
                 // 降级方案：使用普通 window.open
                 window.open(url);

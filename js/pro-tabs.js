@@ -6,10 +6,42 @@
 // ============================================================================
 // TAB NAVIGATION
 // ============================================================================
+
+// 显示/隐藏对比审核页面的导航和筛选按钮
+function toggleCompareNavButtons(show) {
+    // 筛选按钮
+    const filterBtns = document.querySelector('.compare-filters');
+    if (filterBtns) {
+        if (show) {
+            filterBtns.classList.remove('hidden');
+        } else {
+            filterBtns.classList.add('hidden');
+        }
+    }
+
+    // 上一条/下一条按钮
+    const prevBtn = document.getElementById('btn-compare-prev');
+    const nextBtn = document.getElementById('btn-compare-next');
+    if (prevBtn) {
+        if (show) {
+            prevBtn.classList.remove('hidden');
+        } else {
+            prevBtn.classList.add('hidden');
+        }
+    }
+    if (nextBtn) {
+        if (show) {
+            nextBtn.classList.remove('hidden');
+        } else {
+            nextBtn.classList.add('hidden');
+        }
+    }
+}
+
 async function switchTab(tabName) {
     document.querySelectorAll('.view-panel').forEach(v => v.classList.add('hidden'));
     document.getElementById('view-' + tabName).classList.remove('hidden');
-
+    const batchBar = document.getElementById('batch-actions-bar');
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('text-primary', 'border-b-2', 'border-primary');
         btn.classList.add('text-gray-500');
@@ -20,6 +52,15 @@ async function switchTab(tabName) {
 
     // Records are now displayed in upload view (right panel)
     if (tabName === 'upload') {
+        // 清除全选状态和批量操作栏
+        if (dom.selectAll) {
+            dom.selectAll.checked = false;
+            dom.selectAll.indeterminate = false;
+        }
+        if (batchBar) {
+            batchBar.classList.add('hidden');
+        }
+
         // 使用分页查询，加载当前页数据
         state.pagination.currentPage = 1;
         await loadRecords();
@@ -27,7 +68,30 @@ async function switchTab(tabName) {
         updateStatistics();
     }
     if (tabName === 'compare') {
-        // 刷新数据，切换到对比审核页面
+        // 清除全选状态（虽然compare页面没有选择框，但保持统一）
+        if (dom.selectAll) {
+            dom.selectAll.checked = false;
+            dom.selectAll.indeterminate = false;
+        }
+        if (batchBar) {
+            batchBar.classList.add('hidden');
+        }
+
+        // 查看模式：不加载列表数据，显示单条记录
+        if (state.viewRecordMode) {
+            // 隐藏导航和筛选按钮
+            toggleCompareNavButtons(false);
+            // 初始化对比审核视图
+            initCompareView();
+            // 直接显示记录（记录已在 viewRecord 中加载）
+            return;
+        }
+
+        // 正常对比审核模式：确保不是查看模式，重置状态
+        state.viewRecordMode = false;
+        toggleCompareNavButtons(true);
+
+        // 加载列表数据
         try {
             // 确保数据库已初始化
             await db.init();
@@ -58,6 +122,9 @@ async function switchTab(tabName) {
             renderRecords();
             updateStatistics();
 
+            // 显示导航和筛选按钮
+            toggleCompareNavButtons(true);
+
             // 如果查看指定记录，找到其索引
             if (state.viewRecordId) {
                 const viewId = String(state.viewRecordId);
@@ -82,9 +149,27 @@ async function switchTab(tabName) {
     }
 }
 
-// Global viewRecord function
-window.viewRecord = function(id) {
-    state.compareFilter = 'pending'; // Default to pending filter
-    state.viewRecordId = String(id); // Store the ID as string to find after data loads
-    switchTab('compare');
+// Global viewRecord function - 查看单条记录
+window.viewRecord = async function(id) {
+    // 根据ID从数据库查询记录
+    const record = await db.getById(id);
+    if (!record) {
+        showToast('未找到记录', 'error');
+        return;
+    }
+
+    // 设置为查看模式（隐藏导航和筛选按钮）
+    state.viewRecordMode = true;
+    state.viewRecordId = String(id);
+
+    // 存储当前查看的记录
+    currentViewRecord = record;
+
+    // 切换到对比审核页面
+    await switchTab('compare');
+
+    // 显示记录
+    if (typeof renderCompareContent === 'function') {
+        renderCompareContent(record);
+    }
 };

@@ -75,6 +75,14 @@ class MedicalDB {
         return await window.sqliteDB.findDuplicates();
     }
 
+    // 根据ID获取单条记录
+    async getById(id) {
+        if (!window.sqliteDB) {
+            throw new Error('SQLite 不可用，请使用 Electron 环境运行');
+        }
+        return await window.sqliteDB.getById(id);
+    }
+
     async save(record) {
         if (!window.sqliteDB) {
             throw new Error('SQLite 不可用，请使用 Electron 环境运行');

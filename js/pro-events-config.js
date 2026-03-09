@@ -173,4 +173,19 @@ window.addEventListener('offline', () => {
 document.addEventListener('DOMContentLoaded', () => {
     updateNetworkStatus();
     updateModelDisplay();
+
+    // 打开数据文件夹按钮
+    const btnOpenDataFolder = document.getElementById('btn-open-data-folder');
+    if (btnOpenDataFolder) {
+        btnOpenDataFolder.onclick = async () => {
+            try {
+                // 获取数据目录路径
+                const dataFolderPath = await window.electronStore.getUserDataPath();
+                await window.sqliteDB.openFolder(dataFolderPath);
+            } catch (error) {
+                console.error('打开数据文件夹失败:', error);
+                showToast('打开数据文件夹失败', 'error');
+            }
+        };
+    }
 });

@@ -24,7 +24,13 @@ function updateCompareButtonsVisibility() {
 }
 
 document.getElementById('btn-compare-flag').onclick = async () => {
-    const record = getCurrentCompareRecord();
+    // 查看模式下使用 viewRecordId 获取记录
+    let record;
+    if (state.viewRecordMode && state.viewRecordId) {
+        record = await db.getById(state.viewRecordId);
+    } else {
+        record = getCurrentCompareRecord();
+    }
     if (!record) return;
 
     // 先更新数据库状态
@@ -36,15 +42,28 @@ document.getElementById('btn-compare-flag').onclick = async () => {
         return;
     }
 
+    // 查看模式下直接跳转回上传页面
+    if (state.viewRecordMode) {
+        await switchTab('upload');
+        showToast('已标记为需复核', 'info');
+        return;
+    }
+
     // 从内存中删除当前记录
     state.records.splice(state.compareIndex, 1);
     state.comparePagination.total--;
 
-    // 如果当前块已空且不是第一块，加载上一块
-    if (state.records.length === 0 && state.compareCurrentBlock > 0) {
-        await loadPrevBlock();
-    } else if (state.compareIndex >= state.records.length) {
-        // 如果索引超出范围，重置到最后一条
+    // 如果当前块已空，加载当前块的最新数据
+    if (state.records.length === 0) {
+        await refreshCurrentBlock();
+        // 如果当前块完全空了且不是第一块，加载上一块
+        if (state.records.length === 0 && state.compareCurrentBlock > 0) {
+            await loadPrevBlock();
+        }
+    }
+
+    // 确保索引有效
+    if (state.compareIndex >= state.records.length) {
         state.compareIndex = Math.max(0, state.records.length - 1);
     }
 
@@ -59,7 +78,13 @@ document.getElementById('btn-compare-flag').onclick = async () => {
 };
 
 document.getElementById('btn-compare-review').onclick = async () => {
-    const record = getCurrentCompareRecord();
+    // 查看模式下使用 viewRecordId 获取记录
+    let record;
+    if (state.viewRecordMode && state.viewRecordId) {
+        record = await db.getById(state.viewRecordId);
+    } else {
+        record = getCurrentCompareRecord();
+    }
     if (!record) return;
 
     // 先更新数据库状态
@@ -71,15 +96,28 @@ document.getElementById('btn-compare-review').onclick = async () => {
         return;
     }
 
+    // 查看模式下直接跳转回上传页面
+    if (state.viewRecordMode) {
+        await switchTab('upload');
+        showToast('已确认审核');
+        return;
+    }
+
     // 从内存中删除当前记录
     state.records.splice(state.compareIndex, 1);
     state.comparePagination.total--;
 
-    // 如果当前块已空且不是第一块，加载上一块
-    if (state.records.length === 0 && state.compareCurrentBlock > 0) {
-        await loadPrevBlock();
-    } else if (state.compareIndex >= state.records.length) {
-        // 如果索引超出范围，重置到最后一条
+    // 如果当前块已空，加载当前块的最新数据
+    if (state.records.length === 0) {
+        await refreshCurrentBlock();
+        // 如果当前块完全空了且不是第一块，加载上一块
+        if (state.records.length === 0 && state.compareCurrentBlock > 0) {
+            await loadPrevBlock();
+        }
+    }
+
+    // 确保索引有效
+    if (state.compareIndex >= state.records.length) {
         state.compareIndex = Math.max(0, state.records.length - 1);
     }
 
@@ -96,8 +134,14 @@ document.getElementById('btn-compare-review').onclick = async () => {
 // ============================================================================
 // DELETE BUTTON
 // ============================================================================
-document.getElementById('btn-compare-delete').onclick = () => {
-    const record = getCurrentCompareRecord();
+document.getElementById('btn-compare-delete').onclick = async () => {
+    // 查看模式下使用 viewRecordId 获取记录
+    let record;
+    if (state.viewRecordMode && state.viewRecordId) {
+        record = await db.getById(state.viewRecordId);
+    } else {
+        record = getCurrentCompareRecord();
+    }
     if (!record) return;
 
     const name = record.name || '未知';
@@ -109,15 +153,28 @@ document.getElementById('btn-compare-delete').onclick = () => {
         try {
             await db.delete(String(record.id));
 
+            // 查看模式下直接跳转回上传页面
+            if (state.viewRecordMode) {
+                await switchTab('upload');
+                showToast('已删除记录');
+                return;
+            }
+
             // 从内存中删除当前记录
             state.records.splice(state.compareIndex, 1);
             state.comparePagination.total--;
 
-            // 如果当前块已空且不是第一块，加载上一块
-            if (state.records.length === 0 && state.compareCurrentBlock > 0) {
-                await loadPrevBlock();
-            } else if (state.compareIndex >= state.records.length) {
-                // 如果索引超出范围，重置到最后一条
+            // 如果当前块已空，加载当前块的最新数据
+            if (state.records.length === 0) {
+                await refreshCurrentBlock();
+                // 如果当前块完全空了且不是第一块，加载上一块
+                if (state.records.length === 0 && state.compareCurrentBlock > 0) {
+                    await loadPrevBlock();
+                }
+            }
+
+            // 确保索引有效
+            if (state.compareIndex >= state.records.length) {
                 state.compareIndex = Math.max(0, state.records.length - 1);
             }
 

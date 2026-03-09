@@ -14,12 +14,12 @@ const state = {
     records: [], // 当前页的记录
     totalRecords: 0, // 记录总数
     fileQueue: [],
-    compareIndex: -1,
     imageZoom: 100,
     imageRotation: 0,
     imageFit: 'contain',
     processing: false,
     compareFilter: 'pending', // pending, flagged, reviewed
+    viewRecordMode: false, // 查看单条记录模式（隐藏导航和筛选按钮）
     // 任务块模式（每块20条）
     compareBlockSize: 20,
     compareCurrentBlock: 0, // 当前块索引（从0开始）
@@ -80,19 +80,25 @@ async function initSettingsFromStore() {
 async function saveRecords(record) {
     try {
         if (record) {
-            // 保存单条记录
-            await db.save(record);
+            // 保存单条记录，获取返回的 ID
+            const savedId = await db.save(record);
+            if (savedId) {
+                record.id = savedId; // 更新内存中记录的 ID
+            }
         } else {
             // 保存内存中的所有记录（OCR完成后调用）
             if (state.records.length > 0) {
                 // 只获取所有已有记录的ID，避免加载全部数据
                 const allIds = await db.getAllIds();
                 const existingIds = new Set(allIds);
-                // 找出内存中新增的记录
-                const newRecords = state.records.filter(r => !existingIds.has(r.id));
+                // 找出内存中新增的记录（id 为 null 或 undefined 或不在现有 ID 集合中）
+                const newRecords = state.records.filter(r => !r.id || !existingIds.has(String(r.id)));
                 // 批量保存新增记录
                 if (newRecords.length > 0) {
                     await db.saveAll(newRecords);
+                    // 重新加载当前页数据，确保获取正确的 ID
+                    await loadRecords();
+                    renderRecords();
                 }
             }
         }

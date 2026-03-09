@@ -68,6 +68,11 @@ contextBridge.exposeInMainWorld('sqliteDB', {
     return ipcRenderer.invoke('db-get-all-ids');
   },
 
+  // 根据ID获取单条记录
+  getById: (id) => {
+    return ipcRenderer.invoke('db-get-by-id', id);
+  },
+
   // 查找重复记录（姓名+文件名相同）
   findDuplicates: () => {
     return ipcRenderer.invoke('db-find-duplicates');
@@ -131,6 +136,16 @@ contextBridge.exposeInMainWorld('sqliteDB', {
   // 显示打开文件对话框
   showOpenDialog: (options) => {
     return ipcRenderer.invoke('show-open-dialog', options);
+  },
+
+  // 使用系统浏览器打开外部链接
+  openExternal: (url) => {
+    return ipcRenderer.invoke('open-external', url);
+  },
+
+  // 打开文件夹
+  openFolder: (folderPath) => {
+    return ipcRenderer.invoke('open-folder', folderPath);
   }
 });
 

@@ -42,13 +42,18 @@ function addCompareEventListener(element, event, handler) {
     compareEventListeners.push({ element, event, handler });
 }
 
+// 查看模式下存储当前查看的记录
+let currentViewRecord = null;
+
 // ============================================================================
 // COMPARE VIEW RENDERING
 // ============================================================================
 function updateCompareView() {
     const noDataView = document.getElementById('compare-no-data');
     const contentView = document.getElementById('compare-content');
-    const record = getCurrentCompareRecord();
+
+    // 查看模式下使用预加载的记录
+    const record = state.viewRecordMode ? currentViewRecord : getCurrentCompareRecord();
 
     // 更新按钮显示状态
     updateCompareButtonsVisibility();
@@ -56,25 +61,30 @@ function updateCompareView() {
     if (!record) {
         if (noDataView) noDataView.classList.remove('hidden');
         if (contentView) contentView.classList.add('hidden');
-        dom.compareIndex.textContent = '0 / 0';
-        dom.compareStatus.textContent = '-';
+        dom.compareIndex.textContent = '';
+        dom.compareStatus.textContent = '';
         return;
     }
 
     if (noDataView) noDataView.classList.add('hidden');
     if (contentView) contentView.classList.remove('hidden');
 
-    // 显示5个数字：块内位置、块内剩余（内存列表大小）、任务块数、总数
-    const pg = state.comparePagination;
-    const total = pg.total || state.totalRecords;
-    const blockSize = state.compareBlockSize;
-    const currentBlock = state.compareCurrentBlock;
-    const totalBlocks = Math.ceil(total / blockSize);
-    const currentPosition = state.compareIndex + 1;
-    const remainingInBlock = state.records.length;
+    // 查看模式下不显示分页信息
+    if (state.viewRecordMode) {
+        dom.compareIndex.textContent = '';
+    } else {
+        // 显示5个数字：块内位置、块内剩余（内存列表大小）、任务块数、总数
+        const pg = state.comparePagination;
+        const total = pg.total || state.totalRecords;
+        const blockSize = state.compareBlockSize;
+        const currentBlock = state.compareCurrentBlock;
+        const totalBlocks = Math.ceil(total / blockSize);
+        const currentPosition = state.compareIndex + 1;
+        const remainingInBlock = state.records.length;
 
-    // 格式：3/20，剩余 19，块 1/5，总数 85
-    dom.compareIndex.textContent = `${currentPosition}/${remainingInBlock}，页数 ${currentBlock + 1}/${totalBlocks}，总数 ${total}`;
+        // 格式：3/20，剩余 19，块 1/5，总数 85
+        dom.compareIndex.textContent = `${currentPosition}/${remainingInBlock}，页数 ${currentBlock + 1}/${totalBlocks}，总数 ${total}`;
+    }
 
     const statusBadges = {
         pending: '<span class="status-badge pending">待审核</span>',
@@ -88,6 +98,12 @@ function updateCompareView() {
 }
 
 function renderCompareContent(record) {
+    // 显示内容视图，隐藏无数据视图
+    const noDataView = document.getElementById('compare-no-data');
+    const contentView = document.getElementById('compare-content');
+    if (noDataView) noDataView.classList.add('hidden');
+    if (contentView) contentView.classList.remove('hidden');
+
     // Update Image
     const img = document.getElementById('compare-image');
     const imgError = document.getElementById('image-error');
@@ -120,6 +136,14 @@ function renderCompareContent(record) {
 
     if (zoomLevel) {
         zoomLevel.textContent = `${state.imageZoom}%`;
+    }
+
+    // Update Index and Status display
+    if (dom.compareStatus) {
+        const statusNames = { pending: '待审核', reviewed: '已审核', flagged: '需复核' };
+        dom.compareStatus.textContent = statusNames[record.status] || record.status || '-';
+        // Update status badge class
+        dom.compareStatus.className = 'status-badge ' + (record.status || 'pending');
     }
 
     // Update Form and Filename
@@ -175,9 +199,22 @@ function attachCompareEventListeners(record) {
             if (maxlength > 0 && value.length > maxlength) {
                 value = value.substring(0, maxlength);
             }
-            record[field] = value;
-            await saveRecords();
-            loadRecords().then(renderRecords);
+            // 更新数据库
+            try {
+                await db.update(String(record.id), { [field]: value });
+            } catch (e) {
+                console.error('保存失败:', e);
+                showToast('保存失败: ' + e.message, 'error');
+                return;
+            }
+
+            // 查看模式下重新获取记录，审核模式下刷新当前块
+            if (state.viewRecordMode && state.viewRecordId) {
+                currentViewRecord = await db.getById(state.viewRecordId);
+            } else {
+                await refreshCurrentBlock();
+            }
+            updateCompareView();
         };
 
         // Prevent paste from exceeding maxlength

@@ -134,7 +134,10 @@ async function processQueue() {
 
         // 只保存记录，不加载全部数据
         if (currentItem.record) {
-            await db.save(currentItem.record);
+            const savedId = await db.save(currentItem.record);
+            if (savedId) {
+                currentItem.record.id = savedId;
+            }
         }
 
         updateQueueUI();

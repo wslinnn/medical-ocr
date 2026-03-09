@@ -67,6 +67,7 @@ async function exportAllToCSV(options) {
     try {
         // BOM for UTF-8
         let csvContent = '\uFEFF';
+        let actualExportedCount = 0; // 实际导出的数量
 
         // Build header row
         let header = '姓名,穿刺病理,TNM分期,手术时间,术后病理,HER2状态,ER状态,ki67';
@@ -88,6 +89,9 @@ async function exportAllToCSV(options) {
             });
 
             if (result.records && result.records.length > 0) {
+                // 统计实际导出数量
+                actualExportedCount += result.records.length;
+
                 // 直接将每行添加到CSV内容中，处理完立即释放
                 result.records.forEach(r => {
                     let row = `${escape(r.name || '未检出')},${escape(r.biopsyPathology || '未检出')},${escape(r.tnmStage || '待查')},${escape(r.surgeryTime || '未检出')},${escape(r.postopPathology || '未检出')},${escape(r.her2Status || '待查')},${escape(r.erStatus || '待查')},${escape(r.ki67 || '待查')}`;
@@ -134,7 +138,7 @@ async function exportAllToCSV(options) {
             ].filter(Boolean).join('、');
 
             const statusText = statusFilter === 'reviewed' ? '已审核' : '';
-            showToast(`成功导出 ${totalCount} 条记录${statusText ? '（' + statusText + '）' : ''} (CSV${optionsText ? ', 含' + optionsText : ''})`);
+            showToast(`成功导出 ${actualExportedCount} 条记录${statusText ? '（' + statusText + '）' : ''} (CSV${optionsText ? ', 含' + optionsText : ''})`);
         } else {
             showToast('导出失败：无数据', 'error');
         }

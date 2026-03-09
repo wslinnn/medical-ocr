@@ -141,11 +141,17 @@ document.addEventListener('keydown', async (e) => {
                 state.records.splice(state.compareIndex, 1);
                 state.comparePagination.total--;
 
-                // 如果当前块已空且不是第一块，加载上一块
-                if (state.records.length === 0 && state.compareCurrentBlock > 0) {
-                    await loadPrevBlock();
-                } else if (state.compareIndex >= state.records.length) {
-                    // 如果索引超出范围，重置到最后一条
+                // 如果当前块已空，加载当前块的最新数据
+                if (state.records.length === 0) {
+                    await refreshCurrentBlock();
+                    // 如果当前块完全空了且不是第一块，加载上一块
+                    if (state.records.length === 0 && state.compareCurrentBlock > 0) {
+                        await loadPrevBlock();
+                    }
+                }
+
+                // 确保索引有效
+                if (state.compareIndex >= state.records.length) {
                     state.compareIndex = Math.max(0, state.records.length - 1);
                 }
 

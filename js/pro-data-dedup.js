@@ -183,7 +183,7 @@ window.removeDuplicateRecord = async function(groupIndex, recordIndex) {
     const group = duplicateGroups[groupIndex];
     const record = group[recordIndex];
 
-    // Delete from database first
+    // Delete from database
     try {
         await db.delete(String(record.id));
     } catch (e) {
@@ -192,15 +192,13 @@ window.removeDuplicateRecord = async function(groupIndex, recordIndex) {
         return;
     }
 
-    // Remove from memory - compare as strings to handle both types
-    state.records = state.records.filter(r => String(r.id) !== String(record.id));
+    // 从当前分组中移除
     group.splice(recordIndex, 1);
 
+    // 如果只剩一条，从分组中移除
     if (group.length === 1) {
         duplicateGroups.splice(groupIndex, 1);
     }
-
-    renderRecords();
 
     // 更新统计（删除会影响今日数量和状态数量）
     updateTodayCount();
@@ -222,30 +220,31 @@ window.removeDuplicateRecord = async function(groupIndex, recordIndex) {
 // ============================================================================
 // Keep newest (delete all except the last one in each group - sorted oldest to newest)
 document.getElementById('btn-dedup-keep-newer').onclick = async () => {
-    let removedCount = 0;
     const idsToDelete = [];
 
     // Collect IDs to delete (all except the last/newest in each group)
     duplicateGroups.forEach(group => {
         for (let i = 0; i < group.length - 1; i++) {
             idsToDelete.push(String(group[i].id));
-            removedCount++;
         }
     });
 
-    // Delete from database
+    if (idsToDelete.length === 0) {
+        showToast('没有需要删除的记录');
+        return;
+    }
+
+    // Delete from database (batch)
     try {
-        for (const id of idsToDelete) {
-            await db.delete(id);
-        }
+        await db.deleteMany(idsToDelete);
     } catch (e) {
         console.error('批量删除失败:', e);
         showToast('删除失败', 'error');
         return;
     }
 
-    // Update memory - compare as strings to handle both types
-    state.records = state.records.filter(r => !idsToDelete.includes(String(r.id)));
+    // 重新从数据库查询第一页
+    await loadRecords();
     renderRecords();
 
     // 更新统计（删除会影响今日数量和状态数量）
@@ -253,35 +252,36 @@ document.getElementById('btn-dedup-keep-newer').onclick = async () => {
     updateStatusCounts();
 
     document.getElementById('dedup-modal').classList.remove('active');
-    showToast(`已删除 ${removedCount} 条重复记录，保留最新的记录`);
+    showToast(`已删除 ${idsToDelete.length} 条重复记录，保留最新的记录`);
 };
 
 // Keep oldest (delete all except the first one in each group - sorted oldest to newest)
 document.getElementById('btn-dedup-keep-older').onclick = async () => {
-    let removedCount = 0;
     const idsToDelete = [];
 
     // Collect IDs to delete (all except the first/oldest in each group)
     duplicateGroups.forEach(group => {
         for (let i = 1; i < group.length; i++) {
             idsToDelete.push(String(group[i].id));
-            removedCount++;
         }
     });
 
-    // Delete from database
+    if (idsToDelete.length === 0) {
+        showToast('没有需要删除的记录');
+        return;
+    }
+
+    // Delete from database (batch)
     try {
-        for (const id of idsToDelete) {
-            await db.delete(id);
-        }
+        await db.deleteMany(idsToDelete);
     } catch (e) {
         console.error('批量删除失败:', e);
         showToast('删除失败', 'error');
         return;
     }
 
-    // Update memory - compare as strings to handle both types
-    state.records = state.records.filter(r => !idsToDelete.includes(String(r.id)));
+    // 重新从数据库查询第一页
+    await loadRecords();
     renderRecords();
 
     // 更新统计（删除会影响今日数量和状态数量）
@@ -289,9 +289,13 @@ document.getElementById('btn-dedup-keep-older').onclick = async () => {
     updateStatusCounts();
 
     document.getElementById('dedup-modal').classList.remove('active');
-    showToast(`已删除 ${removedCount} 条重复记录，保留最旧的记录`);
+    showToast(`已删除 ${idsToDelete.length} 条重复记录，保留最旧的记录`);
 };
 
-document.getElementById('btn-dedup-close').onclick = () => {
+document.getElementById('btn-dedup-close').onclick = async () => {
     document.getElementById('dedup-modal').classList.remove('active');
+
+    // 重新从数据库查询当前页数据
+    await loadRecords();
+    renderRecords();
 };

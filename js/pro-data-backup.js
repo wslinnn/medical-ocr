@@ -166,6 +166,9 @@ document.getElementById('btn-clear-confirm-delete').onclick = async () => {
 
         // Clear all records in memory
         state.records = [];
+        state.totalRecords = 0;
+        state.pagination.currentPage = 1;
+        state.pagination.total = 0;
 
         renderRecords();
 

@@ -48,11 +48,9 @@ console.log(`🔍 process.execPath: ${process.execPath}`);
 console.log(`🔍 app.getPath('exe'): ${app.getPath('exe')}`);
 
 if (isPackaged) {
-  // 生产环境：使用 exe 同目录
-  const exePath = app.getPath('exe');
-  const exeDir = path.dirname(exePath);
-  dataDir = path.join(exeDir, 'data');
-  console.log(`🔍 生产环境 - exeDir: ${exeDir}`);
+  // 生产环境：使用用户数据目录（AppData/Roaming），更新时数据不会丢失
+  dataDir = path.join(app.getPath('userData'), 'data');
+  console.log(`🔍 生产环境 - userData: ${app.getPath('userData')}`);
 } else {
   // 开发环境：使用项目目录的 data 文件夹
   dataDir = path.join(__dirname, 'data');
@@ -314,6 +312,20 @@ ipcMain.handle('open-external', async (event, url) => {
     return { success: true };
   } catch (error) {
     console.error('打开外部链接失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 打开文件夹
+ipcMain.handle('open-folder', async (event, folderPath) => {
+  try {
+    if (!folderPath || typeof folderPath !== 'string') {
+      return { success: false, error: '无效的路径' };
+    }
+    await shell.openPath(folderPath);
+    return { success: true };
+  } catch (error) {
+    console.error('打开文件夹失败:', error);
     return { success: false, error: error.message };
   }
 });
@@ -587,6 +599,26 @@ ipcMain.handle('db-get-all-ids', async () => {
   }
 });
 
+// 根据ID获取单条记录（包含imageData，用于对比审核）
+ipcMain.handle('db-get-by-id', async (event, id) => {
+  await ensureDbInitialized();
+  if (!db) return null;
+  try {
+    const results = db.exec('SELECT * FROM records WHERE id = ?', [id]);
+    if (!results.length || !results[0].values.length) return null;
+    const columns = results[0].columns;
+    const row = results[0].values[0];
+    const obj = {};
+    columns.forEach((col, i) => {
+      obj[col] = row[i];
+    });
+    return obj;
+  } catch (error) {
+    console.error('获取记录失败:', error);
+    return null;
+  }
+});
+
 // 查找重复记录（姓名+文件名相同）
 ipcMain.handle('db-find-duplicates', async () => {
   await ensureDbInitialized();
@@ -602,7 +634,7 @@ ipcMain.handle('db-find-duplicates', async () => {
         GROUP BY LOWER(name), LOWER(fileName)
         HAVING COUNT(*) > 1
       )
-      ORDER BY LOWER(name), LOWER(fileName), createdAt DESC
+      ORDER BY LOWER(name), LOWER(fileName), createdAt ASC
     `);
 
     if (!results.length) return [];
